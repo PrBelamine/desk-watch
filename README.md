@@ -19,6 +19,8 @@ A compact desk console built around an **Arduino UNO R3** and a **Grove Base Shi
 
 ## Hardware
 
+![Components: Grove modules, Base Shield, LCD and Arduino UNO R3](docs/photos/desk_watch_components.jpg)
+
 | Part | Connection |
 |---|---|
 | Arduino UNO R3 + Grove Base Shield V2.0 | USB-B for power and programming |
