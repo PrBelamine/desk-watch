@@ -2,6 +2,8 @@
 
 A compact desk console built around an **Arduino UNO R3** and a **Grove Base Shield**. It is more than a thermometer: one small box, one menu, nine apps. Every module plugs in with a standard Grove cable, no soldering.
 
+![Desk Watch](docs/photos/desk_watch_0_cover.jpg)
+
 ![Wiring diagram](docs/wiring.png)
 
 ## What it does
@@ -36,6 +38,19 @@ The LCD, the SHT31 and the RTC share the same I2C bus (different addresses), so 
 3. Select *Arduino Uno* and upload.
 
 The sketch uses about 93 % of the UNO's flash and about 22 % of its RAM, so there is little room left for new pages. Ideas to save flash space are welcome. The code is commented in English so it can be read and modified, for example in a classroom.
+
+## Photos
+
+| | |
+|---|---|
+| ![Base with UNO](docs/photos/desk_watch_2.jpg) | ![UNO and shield on the base](docs/photos/desk_watch_1.jpg) |
+| ![Assembled case](docs/photos/desk_watch_3.jpg) | ![Top tray, top view](docs/photos/desk_watch_4.jpg) |
+| ![Top tray with the four modules](docs/photos/desk_watch_5.jpg) | ![Menu, app 1](docs/photos/desk_watch_m1.jpg) |
+
+Menu apps in use:
+
+![Menu 2/9 Timer](docs/photos/desk_watch_m2.jpg) ![Menu 3/9 Stopwatch](docs/photos/desk_watch_m3.jpg)
+![Menu 4/9 Counter](docs/photos/desk_watch_m4.jpg) ![Menu 5/9 Dice](docs/photos/desk_watch_m5.jpg) ![Menu 6/9 Chess clock](docs/photos/desk_watch_m6.jpg)
 
 ## Documentation
 
