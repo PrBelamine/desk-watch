@@ -1,6 +1,6 @@
 # Desk Watch
 
-
+![Desk Watch](docs/photos/Cover_4by3.png)
 ![Desk Watch](docs/2.jpg)
 
 
