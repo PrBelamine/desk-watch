@@ -1,7 +1,7 @@
 # Desk Watch
 
 
-![Desk Watch](docs/photos/desk_watch_0_cover.jpg)
+![Desk Watch](docs/2.jpg)
 
 
 ![Wiring diagram](docs/wiring.png)
