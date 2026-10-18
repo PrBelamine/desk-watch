@@ -43,7 +43,7 @@ The LCD, the SHT31 and the RTC share the same I2C bus (different addresses), so 
 ## Software
 
 
-1. Choose one of the maintained firmware editions below and open its `.ino` file in the Arduino IDE. The original sketch remains in `Desk_Watch_1/Desk_Watch_1.ino`.
+1. Choose one of the maintained firmware editions below and open its `.ino` file in the Arduino IDE.
 2. Install the **"Grove - LCD RGB Backlight"** library (Library Manager). No other library is needed: the SHT31 and the RTC are read directly over I2C.
 3. Select *Arduino Uno* and upload.
 
