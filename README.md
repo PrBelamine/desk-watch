@@ -47,6 +47,16 @@ The LCD, the SHT31 and the RTC share the same I2C bus (different addresses), so 
 2. Install the **"Grove - LCD RGB Backlight"** library (Library Manager). No other library is needed: the SHT31 and the RTC are read directly over I2C.
 3. Select *Arduino Uno* and upload.
 
+## Wokwi simulation
+
+[Open the Desk Watch simulator](https://wokwi.com/projects/478193958373775361)
+
+![Desk Watch simulator on Wokwi](https://thumbs.wokwi.com/projects/478193958373775361/social/1792303170253.png)
+
+Wokwi does not provide an SHT31 model, so the simulation uses a DHT22 connected to D2 to test temperature and humidity readings and alerts. This is only a simulator substitute: the physical Desk Watch uses the Grove SHT31 sensor on I2C.
+
+
+
 
 ### Melody jukebox
 
