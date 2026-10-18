@@ -16,7 +16,7 @@
 //   Dial: turn right = next value / entry
 //   Manual               : dial = scroll through the user manual (27 pages), one click, double click or long press = back to the menu
 //   Settings             : dial = choose, short press = open / confirm
-//   Startup              : intro (DESK WATCH, short melody, then PR BELAMINE MAKERLAB, module check)
+//   Startup              : DESK WATCH, short melody, PR BELAMINE MAKERLAB, Melody Edition loading bar, module check
 //   MENU                 : dial = scroll, short press = enter
 //
 // Functions:
@@ -1331,6 +1331,9 @@ void intro() {
   delay(1000);
   centeredP(0, BRAND1); centeredP(1, BRAND2);      // second screen: the brand
   delay(1500);
+  centeredP(0, TR("MELODIE EDITION", "MELODY EDITION", "MELODIA EDITION", "MELODIE EDITION"));
+  lcd.setCursor(0, 1);
+  for (uint8_t i = 0; i < 16; ++i) { lcd.write((uint8_t)255); delay(60); }
 }
 
 // ---------- Sleep (very long press) ----------

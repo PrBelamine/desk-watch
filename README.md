@@ -106,7 +106,7 @@ The Melody firmware is available directly in [`Desk_Watch_1_Melody/Desk_Watch_1_
 
 ![Happy Birthday app on the Desk Watch](docs/photos/Birthday.jpg)
 
-The Melody build uses 31,946 / 32,256 bytes of flash (99 %) and 455 / 2,048 bytes of RAM (22 %), leaving little room for additional features. The code is commented in English for reading and modification, including in a classroom.
+At startup, Melody Edition appears after the two title screens, followed by an animated loading bar. The Melody build uses 32,120 / 32,256 bytes of flash (99 %) and 455 / 2,048 bytes of RAM (22 %), leaving little room for additional features. The code is commented in English for reading and modification, including in a classroom.
 
 
 ## Photos
