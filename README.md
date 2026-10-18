@@ -47,6 +47,16 @@ The LCD, the SHT31 and the RTC share the same I2C bus (different addresses), so 
 2. Install the **"Grove - LCD RGB Backlight"** library (Library Manager). No other library is needed: the SHT31 and the RTC are read directly over I2C.
 3. Select *Arduino Uno* and upload.
 
+## Firmware editions
+
+The repository also contains three firmware editions. **FR and EN identify the language of the source-code comments**, not separate display languages. Both editions have the same nine-entry menu and omit the Melody app so flash space remains available for future sensor and actuator apps. The menu and settings themselves still support the configured display languages.
+
+- **French code comments:** [`Desk_Watch_1_FR/Desk_Watch_1_FR.ino`](Desk_Watch_1_FR/Desk_Watch_1_FR.ino).
+- **English code comments:** [`Desk_Watch_1_EN/Desk_Watch_1_EN.ino`](Desk_Watch_1_EN/Desk_Watch_1_EN.ino).
+- **Melody jukebox:** [`Desk_Watch_1_Melody/Desk_Watch_1_Melody.ino`](Desk_Watch_1_Melody/Desk_Watch_1_Melody.ino). Its ten-entry menu places Melody after Chess clock and includes Happy Birthday, Für Elise, Super Mario Bros and Tetris. This edition is intended to remain fixed.
+
+All three editions use the same Settings order: Language, Brightness, Volume, Boot sound, Auto sleep, Night mode, Set time and Favorite. Open the matching `.ino` file in Arduino IDE, install the Grove LCD library listed above, select *Arduino Uno* and upload. The FR and EN editions each use 29,974 / 32,256 bytes of flash (92%); Melody uses 31,946 / 32,256 bytes (99%).
+
 ## Wokwi simulation
 
 [Open the Desk Watch simulator](https://wokwi.com/projects/478193958373775361)
@@ -60,11 +70,11 @@ Wokwi does not provide an SHT31 model, so the simulation uses a DHT22 connected 
 
 ### Melody jukebox
 
-The Melody firmware adds a jukebox after Chess clock, with Happy Birthday, Für Elise, Super Mario Bros and Tetris. Download `Desk_Watch_1_Melody.ino` from the [Melody release](https://github.com/PrBelamine/desk-watch/releases/tag/v1.1.0-jukebox-beta), install the same Grove LCD library above, select Arduino Uno and upload.
+The Melody firmware is available directly in [`Desk_Watch_1_Melody/Desk_Watch_1_Melody.ino`](Desk_Watch_1_Melody/Desk_Watch_1_Melody.ino). The earlier [Melody release](https://github.com/PrBelamine/desk-watch/releases/tag/v1.1.0-jukebox-beta) remains available as a previous download.
 
 ![Happy Birthday app on the Desk Watch](docs/photos/Birthday.jpg)
 
-The build uses 32,168 / 32,256 bytes of flash (99 %) and 455 / 2,048 bytes of RAM (22 %), leaving little room for additional features. The code is commented in English for reading and modification, including in a classroom.
+The Melody build uses 31,946 / 32,256 bytes of flash (99 %) and 455 / 2,048 bytes of RAM (22 %), leaving little room for additional features. The code is commented in English for reading and modification, including in a classroom.
 
 
 ## Photos
