@@ -19,6 +19,38 @@
 - Optional RTC module (DS1307 or DS3231): clock and alarm, with an automatic night mode.
 - A 27-page manual built into the firmware, readable on the LCD.
 
+## Menu tree
+
+The labels below are shown in the selected display language. FR and EN refer to the source-code comment language, not the display language.
+
+```text
+Desk Watch
+├── Favorite (opens the selected home app)
+├── Temp & Hum
+├── Timer
+├── Stopwatch
+├── Alarm
+├── Counter
+├── Dice
+├── Chess clock
+├── Melody (Melody edition only)
+│   ├── Happy Birthday
+│   ├── Für Elise
+│   ├── Super Mario Bros
+│   └── Tetris
+├── Settings
+│   ├── Language
+│   ├── Brightness
+│   ├── Volume
+│   ├── Boot sound
+│   ├── Auto sleep
+│   ├── Night mode
+│   ├── Set time
+│   └── Favorite
+```
+
+In the FR and EN-commented editions, Melody and its four songs are absent; Settings follows Chess clock directly.
+
 
 ## Hardware
 
@@ -87,7 +119,7 @@ The Melody build uses 31,946 / 32,256 bytes of flash (99 %) and 455 / 2,048 byte
 | ![Top tray with the four modules](docs/photos/desk_watch_5.jpg) | ![Menu, app 1](docs/photos/desk_watch_m1.jpg) |
 
 
-Menu apps in use:
+Menu screens from an earlier firmware version (labels match the photos):
 
 
 ![Menu 2/9 Timer](docs/photos/desk_watch_m2.jpg) ![Menu 3/9 Stopwatch](docs/photos/desk_watch_m3.jpg)
