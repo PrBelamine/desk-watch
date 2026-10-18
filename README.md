@@ -43,6 +43,8 @@ The LCD, the SHT31 and the RTC share the same I2C bus (different addresses), so 
 
 A separate firmware edition adds Happy Birthday immediately after Chess clock, bringing the menu to 10 entries. Open `Desk_Watch_1_birthday/Desk_Watch_1_birthday.ino` in the Arduino IDE. Install the same Grove LCD library above and select Arduino Uno. The sketch is also attached to the [v1.0.0-birthday release](https://github.com/PrBelamine/desk-watch/releases/tag/v1.0.0-birthday).
 
+![Happy Birthday app on the Desk Watch](docs/photos/Birthday.jpg)
+
 
 
 The sketch uses about 93 % of the UNO's flash and about 22 % of its RAM, so there is little room left for new pages. Ideas to save flash space are welcome. The code is commented in English so it can be read and modified, for example in a classroom.
