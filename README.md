@@ -11,11 +11,11 @@
 
 
 - Temperature and humidity on a 16x2 RGB LCD (SHT31 sensor), with adjustable HIGH / LOW thresholds: the screen turns red, blue or green and the buzzer warns you.
-- Menu of 9 apps: Temp & Hum, Timer, Stopwatch, Counter, Dice, Chess clock, Settings, Manual, Home.
+- FR/EN menu (9 entries): Favorite, Temp & Hum, Timer, Stopwatch, Alarm, Counter, Dice, Chess clock and Settings. The Melody edition adds Melody after Chess clock (10 entries total).
 - Timer: Pomodoro from 1 minute to 4 hours.
 - Dice: D2 (coin flip), D4, D6, D8, D10, D12, D20, D30 (pick a student in class) and D100.
 - Chess clock: 10 time controls from 1+0 to 60+0, with increment (default 5+3).
-- Settings: startup sound, volume, language (English by default, plus French, Spanish and German), home page, night mode, automatic sleep, backlight.
+- Settings: language, brightness, volume, startup sound, automatic sleep, night mode, set time and favorite, in that order.
 - Optional RTC module (DS1307 or DS3231): clock and alarm, with an automatic night mode.
 - A 27-page manual built into the firmware, readable on the LCD.
 
