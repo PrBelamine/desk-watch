@@ -10,7 +10,7 @@
 ## What it does
 
 
-- Temperature and humidity on a 16x2 RGB LCD (SHT31 sensor), with adjustable HIGH / LOW thresholds: the screen turns red, blue or green and the buzzer warns you.
+- Temperature and humidity on a 16x2 RGB LCD (SHT31 sensor/ SHT40), with adjustable HIGH / LOW thresholds: the screen turns red, blue or green and the buzzer warns you.
 - FR/EN menu (9 entries): Favorite, Temp & Hum, Timer, Stopwatch, Alarm, Counter, Dice, Chess clock and Settings. The Melody edition adds Melody after Chess clock (10 entries total).
 - Timer: Pomodoro from 1 minute to 4 hours.
 - Dice: D2 (coin flip), D4, D6, D8, D10, D12, D20, D30 (pick a student in class) and D100.
