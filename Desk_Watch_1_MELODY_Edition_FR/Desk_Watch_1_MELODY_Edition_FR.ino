@@ -11,7 +11,7 @@
 //   Appui long (partout) : ouvrir le MENU ; dans le MENU, revenir à la page précédente.
 //   Accueil : heure RTC et mesures sur un même écran ; affichage stable si tout est OK, alternance uniquement en cas d’alerte ; appui court = MENU.
 //   Menu : Favori, Temp et Hum, Minuteur, Compteur, Chrono, Réveil, Dé, Pendule d’échecs, Mélodie, Paramètres.
-//   Paramètres : langue, luminosité, volume, son de démarrage, veille automatique, mode nuit, réglage de l’heure, favori.
+//   Paramètres : luminosité, volume, son de démarrage, veille automatique, mode nuit, réglage de l’heure, favori.
 //   Mode nuit : Non / Auto (22 h à 6 h, avec RTC) / Oui : luminosité réduite à 8 %, bips d’alerte et mélodie de démarrage coupés ; le réveil sonne normalement.
 //   Molette : tourner à droite = valeur ou entrée suivante.
 //   Paramètres : molette = choisir ; appui court = ouvrir ou confirmer.
@@ -88,7 +88,7 @@ rgb_lcd lcd;
 
 enum { M_TH, M_POMO, M_CHRONO, M_TALLY, M_DIE, M_CHESS, M_MUSIC, M_PARAMS, M_HOME, M_ALARM, M_SETCLOCK, M_BRIGHT, M_MENU, M_CLOCK };
 const uint8_t N_MENU = 10;
-const uint8_t N_PAR = 8;
+const uint8_t N_PAR = 7;   // visible settings (the language choice was removed: one language per edition)
 uint8_t mode = M_HOME, prevMode = M_HOME;   // Valeurs de l’énumération M_*.
 uint8_t menuIdx = 0;
 uint8_t brightBackup = 100, brightIdx = 7;
@@ -97,8 +97,8 @@ enum { EV_NONE, EV_SHORT, EV_LONG, EV_VLONG, EV_DOUBLE, EV_PRESS };
 
 struct Settings { uint8_t magic, aH, aM, armed, workMin, bright, tLo2, tHi2, hLo, hHi, sound, lang, volume, home, night, sleep; } cfg;   // lang : 0 français, 1 anglais, 2 espagnol, 3 allemand ; home : favori (0 auto, 1 Temp et Hum, 2 horloge, 3 minuteur, 4 chrono, 5 compteur) ; night : mode nuit (0 non, 1 automatique avec RTC, 2 oui) ; sleep : indice du délai dans SLEEP_MIN (0 = jamais).
 
-// Textes dans la langue choisie (français, anglais, espagnol, allemand), conservés en mémoire flash.
-#define TR(fr, en, es, de) (cfg.lang == 1 ? PSTR(en) : cfg.lang == 2 ? PSTR(es) : cfg.lang == 3 ? PSTR(de) : PSTR(fr))
+// Textes de cette édition (une seule langue par version : le nom du fichier l’indique), conservés en mémoire flash.
+#define TR(fr, en, es, de) PSTR(fr)
 
 // Horloge.
 bool rtcPresent = false;
@@ -120,7 +120,7 @@ unsigned long alarmNoteEnd = 0;
 bool alarmPreview = false;
 uint8_t previewMelody = 0, previewVolume = 0;
 uint8_t parSub = 0, parBackup = 0;   // Réglage ouvert et valeur sauvegardée avant modification.
-uint8_t parIdx = 0;          // Paramètres : 0 langue, 1 luminosité, 2 volume, 3 son de démarrage, 4 veille automatique, 5 mode nuit, 6 heure, 7 favori.
+uint8_t parIdx = 1;          // Page Paramètres (identifiants internes) : 1 luminosité, 2 volume, 3 son de démarrage, 4 veille automatique, 5 mode nuit, 6 heure, 7 favori
 unsigned int tallyCount = 0;  // Compteur manuel.
 uint8_t tallySub = 0;         // 0 = comptage, 1 = confirmation de remise à zéro.
 unsigned long tallyT0 = 0;
@@ -182,11 +182,8 @@ static const uint8_t* const MUSIC_LENGTHS[N_MUSIC] PROGMEM = {
   BD_LEN, ELISE_LEN, MARIO_LEN, TETRIS_LEN };
 static const uint8_t MUSIC_NOTE_COUNTS[N_MUSIC] PROGMEM = {
   N_BDAY, N_ELISE, N_MARIO, N_TETRIS };
-static const char MUSIC_NAMES[4][N_MUSIC][13] PROGMEM = {
-  { "Anniversaire", "Pour Elise", "Mario Bros", "Tetris" },
-  { "Birthday", "Fur Elise", "Mario Bros", "Tetris" },
-  { "Cumpleanos", "Para Elisa", "Mario Bros", "Tetris" },
-  { "Geburtstag", "Fuer Elise", "Mario Bros", "Tetris" } };
+static const char MUSIC_NAMES[1][N_MUSIC][13] PROGMEM = {
+  { "Anniversaire", "Pour Elise", "Mario Bros", "Tetris" } };
 // Créations réservées au réveil : fréquences en hertz et durées par unités de 10 ms ; zéro indique un silence.
 // Aurora : arpèges majeurs fluides, puis résolution lumineuse dans les aigus.
 static const uint16_t AURORA_NOTE[] PROGMEM = {
@@ -246,7 +243,7 @@ static const char ALARM_EXTRA_NAMES[4][13] PROGMEM = {
   "Aurora", "Cosmic Pulse", "Arcade Hero", "Epic Rise" };
 
 PGM_P alarmTuneName() {
-  return alarmCfg.melody < N_MUSIC ? MUSIC_NAMES[cfg.lang][alarmCfg.melody]
+  return alarmCfg.melody < N_MUSIC ? MUSIC_NAMES[0][alarmCfg.melody]
                                  : ALARM_EXTRA_NAMES[alarmCfg.melody - N_MUSIC];
 }
 
@@ -497,13 +494,12 @@ void loadCfg() {
   if (cfg.magic != 0xA9 || cfg.aH > 23 || cfg.aM > 59 || cfg.armed > 1 ||
       cfg.workMin < 1 || cfg.workMin > 240) {
     cfg.magic = 0xA9; cfg.aH = 7; cfg.aM = 0; cfg.armed = 0; cfg.workMin = 25;
-    cfg.bright = 100; cfg.sound = 1; cfg.lang = 1; cfg.volume = 2; cfg.home = 0; cfg.night = 1; cfg.sleep = 0; cfg.tLo2 = 0xFF;       // Les seuils sont vérifiés plus bas.
+    cfg.bright = 100; cfg.sound = 1; cfg.volume = 2; cfg.home = 0; cfg.night = 1; cfg.sleep = 0; cfg.tLo2 = 0xFF;       // Les seuils sont vérifiés plus bas.
   }
   if (cfg.sleep > 7) cfg.sleep = 0;                     // Veille automatique désactivée par défaut.
   if (cfg.night > 2) cfg.night = 1;                     // Mode nuit automatique par défaut.
   if (cfg.home > 5) cfg.home = 0;                       // Favori automatique par défaut.
   if (cfg.volume > 2) cfg.volume = 2;                   // Volume maximal par défaut.
-  if (cfg.lang > 3) cfg.lang = 1;                       // Anglais par défaut pour l’interface ; les commentaires du programme restent en français.
   if (cfg.sound > 1) cfg.sound = 1;                    // Son de démarrage activé par défaut.
   // Rétablit les seuils par défaut s’ils sont absents ou incohérents.
   if (cfg.tLo2 < T_MIN2 || cfg.tHi2 > T_MAX2 || cfg.tHi2 < cfg.tLo2 + T_GAP2 ||
@@ -554,14 +550,39 @@ void setClock(uint8_t h, uint8_t m) {
 }
 
 // ---------- Capteur SHT31 ----------
+// Small 16-bit xorshift generator: replaces random()/randomSeed() and saves about 250 bytes of flash
+static uint16_t rngS = 1;
+static void seedRng(uint32_t s) { rngS = (uint16_t)(s ^ (s >> 16)); if (!rngS) rngS = 1; }
+static uint16_t rollDie(uint8_t faces) {
+  rngS ^= rngS << 7; rngS ^= rngS >> 9; rngS ^= rngS << 8;
+  return 1 + rngS % faces;
+}
+
+// CRC-8 (polynomial 0x31, init 0xFF) used by the SHT31 to protect each 16-bit word
+uint8_t crc8(const uint8_t *d, uint8_t n) {
+  uint8_t c = 0xFF;
+  while (n--) {
+    c ^= *d++;
+    for (uint8_t i = 0; i < 8; i++) c = (c & 0x80) ? (c << 1) ^ 0x31 : (c << 1);
+  }
+  return c;
+}
+
 bool readSht() {
   Wire.beginTransmission(SHT_ADDR);
   Wire.write((uint8_t)0x24); Wire.write((uint8_t)0x00);   // Mesure avec répétabilité élevée.
   if (Wire.endTransmission() != 0) return false;
   delay(20);
   if (Wire.requestFrom(SHT_ADDR, (uint8_t)6) != 6) return false;
-  uint16_t rt = (uint16_t)Wire.read() << 8; rt |= Wire.read(); Wire.read();
-  uint16_t rh = (uint16_t)Wire.read() << 8; rh |= Wire.read(); Wire.read();
+  uint8_t b[6];
+  for (uint8_t i = 0; i < 6; i++) b[i] = Wire.read();
+  static uint8_t crcBad = 0;
+  if (crc8(b, 2) != b[2] || crc8(b + 3, 2) != b[5]) {   // corrupted read: keep the previous values
+    return ++crcBad < 3 ? shtOk : false;                // report a sensor fault after 3 bad reads in a row
+  }
+  crcBad = 0;
+  uint16_t rt = ((uint16_t)b[0] << 8) | b[1];
+  uint16_t rh = ((uint16_t)b[3] << 8) | b[4];
   temp10 = (int)((1750L * rt) / 65535L) - 450 + TEMP_OFFSET10;
   hum10  = (int)((1000L * rh) / 65535L) + HUM_OFFSET10;
   if (hum10 < 0) hum10 = 0;
@@ -683,8 +704,8 @@ void pomoTick() {
 // ---------- Écrans ----------
 // ---------- Navigation ----------
 // Lecture et modification des valeurs des paramètres selon leur indice.
-uint8_t parValue(uint8_t i) { return i == 0 ? cfg.lang : i == 2 ? cfg.volume : i == 3 ? cfg.sound : i == 4 ? cfg.sleep : i == 5 ? cfg.night : cfg.home; }
-void setParValue(uint8_t i, uint8_t v) { if (i == 0) cfg.lang = v; else if (i == 2) cfg.volume = v; else if (i == 3) cfg.sound = v; else if (i == 4) cfg.sleep = v; else if (i == 5) cfg.night = v; else cfg.home = v; }
+uint8_t parValue(uint8_t i) { return i == 2 ? cfg.volume : i == 3 ? cfg.sound : i == 4 ? cfg.sleep : i == 5 ? cfg.night : cfg.home; }
+void setParValue(uint8_t i, uint8_t v) { if (i == 2) cfg.volume = v; else if (i == 3) cfg.sound = v; else if (i == 4) cfg.sleep = v; else if (i == 5) cfg.night = v; else cfg.home = v; }
 
 void chessPause() {                    // Quitter la page met la pendule d’échecs en pause.
   if (chessState == 1) { chessBase[chessSide] -= (long)(millis() - chessTurn); chessState = 2; }
@@ -695,7 +716,7 @@ void enterMode(uint8_t m) {
   if (mode == M_CHESS && m != M_CHESS) chessPause();
   if (mode == M_MUSIC && m != M_MUSIC) musicToneStop();
   mode = m;
-  clockSub = 0; alarmSub = 0; thSub = 0; parIdx = 0; parSub = 0; tallySub = 0;
+  clockSub = 0; alarmSub = 0; thSub = 0; parIdx = 1; parSub = 0; tallySub = 0;
   if (m == M_DIE) dieRolling = false;
   if (m == M_MUSIC) { musicState = 0; musicPos = 0; musicRemain = 0; }
   potReset();
@@ -783,36 +804,6 @@ void drawMenu(uint8_t e, bool draw) {
   "Pend. echecs\0"
   "Melodie\0"
   "Parametres\0"
-  "Favorite\0"
-  "Temp & Hum\0"
-  "Timer\0"
-  "Counter\0"
-  "Stopwatch\0"
-  "Alarm\0"
-  "Dice\0"
-  "Chess clock\0"
-  "Melody\0"
-  "Settings\0"
-  "Favorito\0"
-  "Temp y Hum\0"
-  "Temporizador\0"
-  "Contador\0"
-  "Cronometro\0"
-  "Alarma\0"
-  "Dado\0"
-  "Ajedrez\0"
-  "Melody\0"
-  "Ajustes\0"
-  "Favorit\0"
-  "Temp/Feuchte\0"
-  "Timer\0"
-  "Zaehler\0"
-  "Stoppuhr\0"
-  "Wecker\0"
-  "Wuerfel\0"
-  "Schachuhr\0"
-  "Melody\0"
-  "Einstellung\0"
 ;
   menuIdx = menuFromPot();
   if (e == EV_SHORT) { if (menuIdx == 0) goHome(); else enterMode(menuMode(menuIdx)); return; }
@@ -822,7 +813,7 @@ void drawMenu(uint8_t e, bool draw) {
   color(40, 80, 160);
   snprintf_P(b, sizeof(b), PSTR("MENU       %2d/%d"), menuIdx + 1, N_MENU);
   line(0, b);
-  char nm[13]; strcpy_P(nm, packedText(names, cfg.lang * N_MENU + menuIdx));
+  char nm[13]; strcpy_P(nm, packedText(names, menuIdx));
   snprintf_P(b, sizeof(b), PSTR("> %s"), nm);
   line(1, b);
 }
@@ -862,7 +853,6 @@ void drawClock(bool draw) {
 }
 
 void introSound();
-static const char langName[4][9] PROGMEM = { "Francais", "English", "Espanol", "Deutsch" };
 // Favoris possibles : 0 automatique, 1 Temp et Hum, 2 horloge, 3 minuteur, 4 chronomètre, 5 compteur.
 static const char homeName[] PROGMEM =
   "Auto\0"
@@ -871,31 +861,13 @@ static const char homeName[] PROGMEM =
   "Minuteur\0"
   "Chrono\0"
   "Compteur\0"
-  "Auto\0"
-  "Temp & Hum\0"
-  "Clock\0"
-  "Timer\0"
-  "Stopwatch\0"
-  "Counter\0"
-  "Auto\0"
-  "Temp y Hum\0"
-  "Reloj\0"
-  "Temporizador\0"
-  "Cronometro\0"
-  "Contador\0"
-  "Auto\0"
-  "Temp/Feuchte\0"
-  "Uhr\0"
-  "Timer\0"
-  "Stoppuhr\0"
-  "Zaehler\0"
 ;
-// Paramètres : langue, luminosité, volume, son de démarrage, veille automatique, mode nuit, heure et favori.
+// Paramètres : luminosité, volume, son de démarrage, veille automatique, mode nuit, heure et favori.
 
 void drawParams(uint8_t e, bool draw) {
   if (e == EV_DOUBLE) { backToMenu(); return; }          // Double clic : retour au menu et annulation du réglage ouvert.
   if (parSub == 0) {
-    if (potLive()) parIdx = potSelect(N_PAR, parIdx, 30);
+    if (potLive()) parIdx = 1 + potSelect(N_PAR, parIdx - 1, 30);
     if (e == EV_SHORT) {
       if (parIdx == 1)      { enterMode(M_BRIGHT); return; }
       else if (parIdx == 6) { enterMode(M_SETCLOCK); return; }
@@ -904,7 +876,7 @@ void drawParams(uint8_t e, bool draw) {
   } else {
     if (potLive()) {
       uint8_t cur = parValue(parIdx);
-      uint8_t count = parIdx == 0 ? 4 : parIdx == 2 ? 3 : parIdx == 3 ? 2 : parIdx == 4 ? 8 : parIdx == 5 ? 3 : 6;
+      uint8_t count = parIdx == 2 ? 3 : parIdx == 3 ? 2 : parIdx == 4 ? 8 : parIdx == 5 ? 3 : 6;
       uint8_t v = potSelect(count, cur, parIdx == 2 ? 40 : 30);
       if (v != cur) { setParValue(parIdx, v); if (parIdx == 2) beep(1, 100); }
     }
@@ -916,15 +888,14 @@ void drawParams(uint8_t e, bool draw) {
   if (!draw) return;
   char b[17], nm[14], val[14];
   color(40, 90, 160);
-  strcpy_P(nm, parIdx == 0 ? TR("Langue", "Language", "Idioma", "Sprache")
-             : parIdx == 1 ? TR("Luminosite", "Brightness", "Brillo", "Helligkeit")
+  strcpy_P(nm, parIdx == 1 ? TR("Luminosite", "Brightness", "Brillo", "Helligkeit")
              : parIdx == 2 ? TR("Volume", "Volume", "Volumen", "Lautstaerke")
              : parIdx == 3 ? TR("Son demarr.", "Boot sound", "Sonido inic.", "Startton")
              : parIdx == 4 ? TR("Veille auto", "Auto sleep", "Reposo auto", "Auto-Standby")
              : parIdx == 5 ? TR("Mode nuit", "Night mode", "Modo noche", "Nachtmodus")
              : parIdx == 6 ? TR("Regler heure", "Set time", "Ajustar hora", "Uhr stellen")
                            : TR("Favori", "Favorite", "Favorito", "Favorit"));
-  snprintf_P(b, sizeof(b), PSTR("%-12s %d/%d"), nm, parIdx + 1, N_PAR);
+  snprintf_P(b, sizeof(b), PSTR("%-12s %d/%d"), nm, parIdx, N_PAR);
   line(0, b);
   if (parIdx == 6) {
     if (rtcPresent) snprintf_P(b, sizeof(b), PSTR("%02d:%02d        OK"), nowH, nowM);
@@ -938,7 +909,7 @@ void drawParams(uint8_t e, bool draw) {
     return;
   }
   if (parIdx == 7) {
-    strcpy_P(val, packedText(homeName, cfg.lang * 6 + cfg.home));
+    strcpy_P(val, packedText(homeName, cfg.home));
     snprintf_P(b, sizeof(b), parSub ? PSTR("> %-12s") : PSTR("%-12s OK"), val);
     line(1, b);
     return;
@@ -959,7 +930,7 @@ void drawParams(uint8_t e, bool draw) {
     return;
   }
   if (parIdx == 3) strcpy_P(val, cfg.sound ? TR("OUI", "ON", "SI", "JA") : TR("NON", "OFF", "NO", "NEIN"));
-  else if (parIdx == 2) {
+  else {
     char bar[4] = "   ";
     for (uint8_t i = 0; i <= cfg.volume; i++) bar[i] = '#';                            // Trois dièses indiquent le volume fort.
     strcpy_P(val, volumeName(cfg.volume));
@@ -967,7 +938,6 @@ void drawParams(uint8_t e, bool draw) {
     line(1, b);
     return;
   }
-  else strcpy_P(val, langName[cfg.lang]);
   snprintf_P(b, sizeof(b), parSub ? PSTR("> %-9s   OK") : PSTR("%-9s OK=chg"), val);
   line(1, b);
 }
@@ -1015,13 +985,10 @@ void drawTempHum(uint8_t e, bool draw) {
   if (!draw) return;
   char b[17];
   if (thSub != 0) {
-    static const char titles[4][4][17] PROGMEM = {
-      { "Temp. trop basse", "Temp. trop haute", "Humid trop basse", "Humid trop haute" },
-      { "Temp too low", "Temp too high", "Humid too low", "Humid too high" },
-      { "Temp muy baja", "Temp muy alta", "Humed muy baja", "Humed muy alta" },
-      { "Temp zu tief", "Temp zu hoch", "Feuchte zu tief", "Feuchte zu hoch" } };
+    static const char titles[1][4][17] PROGMEM = {
+      { "Temp. trop basse", "Temp. trop haute", "Humid trop basse", "Humid trop haute" } };
     color(150, 100, 0);
-    lineP(0, titles[cfg.lang][thSub - 1]);
+    lineP(0, titles[0][thSub - 1]);
     uint8_t v = *thPtr(thSub);
     if (thSub <= 2) snprintf_P(b, sizeof(b), PSTR("T%s%d.%dC  OK"), thSub == 1 ? "<=" : ">=", v / 2, (v % 2) * 5);
     else            snprintf_P(b, sizeof(b), PSTR("H%s%d%%  OK"),   thSub == 3 ? "<=" : ">=", v);
@@ -1234,8 +1201,8 @@ void drawDie(uint8_t e, bool draw, bool tap) {
   uint8_t faces = pgm_read_byte(&DIE_FACES[dieIdx]);
   if (dieRolling) {
     if ((long)(millis() - dieEnd) >= 0) {              // Fin du lancer : résultat définitif.
-      randomSeed(micros() + analogRead(PIN_POT));
-      dieVal = random(1, faces + 1);
+      seedRng(micros() + analogRead(PIN_POT));
+      dieVal = rollDie(faces);
       dieRolling = false;
       beep(1, 60);
       lastDraw = 0;
@@ -1246,7 +1213,7 @@ void drawDie(uint8_t e, bool draw, bool tap) {
       if (n != dieIdx) { dieIdx = n; dieVal = 0; faces = pgm_read_byte(&DIE_FACES[dieIdx]); }
     }
     if (tap) {                                         // Chaque appui lance immédiatement le dé.
-      randomSeed(micros() + analogRead(PIN_POT));
+      seedRng(micros() + analogRead(PIN_POT));
       dieRolling = true; dieEnd = millis() + 900; dieVal = 0;
     }
   }
@@ -1256,7 +1223,7 @@ void drawDie(uint8_t e, bool draw, bool tap) {
   lineP(0, TR("DE", "DICE", "DADO", "WUERFEL"));
   badges(M_DIE);
   if (dieRolling) {
-    dieShow = random(1, faces + 1);
+    dieShow = rollDie(faces);
     buzz(1800, 5);                                     // Petit cliquetis pendant le lancer.
     snprintf_P(b, sizeof(b), PSTR("D%-3u        %3u"), faces, dieShow);
   } else if (dieVal != 0) {
@@ -1310,7 +1277,7 @@ void drawMusic(uint8_t e, bool draw) {
   if (!draw) return;
   color(120, 60, 180);
   char b[17], title[13];
-  strcpy_P(title, MUSIC_NAMES[cfg.lang][musicTrack]);
+  strcpy_P(title, MUSIC_NAMES[0][musicTrack]);
   snprintf_P(b, sizeof(b), PSTR("%u/%u %s"), musicTrack + 1, N_MUSIC, title);
   line(0, b);
   badges(M_MUSIC);
