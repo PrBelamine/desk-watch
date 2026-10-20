@@ -1,6 +1,6 @@
 # Desk Watch 1 — TEACHER Edition
 
-Cette édition ajoute l’application **EXAMEN** à toutes les fonctions de MELODY Edition. Les commentaires de ce fichier `.ino` sont en français ; les quatre langues de l’interface restent disponibles dans les paramètres. Les fichiers MELODY sont conservés séparément.
+Cette édition ajoute l’application **EXAMEN** à toutes les fonctions de MELODY Edition. Les commentaires de ce fichier `.ino` et l’interface sont en français (la version EN les a en anglais) ; la langue est fixée par la version et n’est plus un réglage. D’autres langues seront créées sur demande : dites-le dans les commentaires. Les fichiers MELODY sont conservés séparément.
 
 ## Démarrer un examen
 
