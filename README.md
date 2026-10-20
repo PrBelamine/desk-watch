@@ -141,7 +141,7 @@ The existing gallery is retained below. Menu photos show earlier firmware and do
 ![Earlier chess menu](docs/photos/desk_watch_m6.jpg)
 ![Birthday melody](docs/photos/Birthday.jpg)
 
-See the existing `docs` directory for the wiring image and earlier user guide; use the edition guides above for the current EXAM controls.
+See the `docs` directory for the wiring image and the guides: user guide ([English](docs/Desk_Watch_1_User_Guide.pdf) · [French](docs/Desk_Watch_1_Guide_utilisateur_FR.pdf)) and screw guide ([English](docs/Desk_Watch_Screw_Guide_EN.pdf) · [French](docs/Desk_Watch_Guide_de_visserie_FR.pdf)). The TEACHER edition guides above detail the EXAM controls.
 
 ## Project pages and enclosure
 
