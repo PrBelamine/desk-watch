@@ -1,3 +1,12 @@
+# Firmware update — 20 October 2026
+
+- One language per build: the FR files use a French interface and the EN files an English interface. The Language choice is removed from Settings (seven settings remain). Other languages will be created on request.
+- Frees about 6 KB of program storage on the Arduino UNO (TEACHER was at 100 %). Settings stored in EEPROM keep the same layout.
+- SHT31 read: the CRC-8 of each 16-bit word is now checked. A corrupted read is ignored and the previous values are kept; a sensor fault is reported after three bad reads in a row. This follows a reader comment on the project page.
+- Dice use a lighter random-number generator, saving about 250 bytes.
+
+These changes compile for the four sketches (MELODY and TEACHER, FR and EN). A physical device check of the settings menu, the SHT31 read and the dice is still pending.
+
 # Firmware update — 19 October 2026
 
 - Current MELODY and TEACHER Editions, each with FR/EN-commented sketches.
