@@ -183,7 +183,7 @@ static const uint8_t* const MUSIC_LENGTHS[N_MUSIC] PROGMEM = {
 static const uint8_t MUSIC_NOTE_COUNTS[N_MUSIC] PROGMEM = {
   N_BDAY, N_ELISE, N_MARIO, N_TETRIS };
 static const char MUSIC_NAMES[1][N_MUSIC][13] PROGMEM = {
-  { "Birthday", "Fur Elise", "Mario Bros", "Tetris" } };
+  { "Birthday", "Fur Elise", "Super Bros", "Tetrix" } };
 // Original alarm-only themes (Hz / duration in 10 ms units). Zero is a rest.
 // Aurora: flowing major arpeggios, then a bright upper-register resolution.
 static const uint16_t AURORA_NOTE[] PROGMEM = {
