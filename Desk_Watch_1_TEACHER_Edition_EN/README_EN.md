@@ -1,6 +1,6 @@
 # Desk Watch 1 — TEACHER Edition
 
-This edition adds **EXAM** to all existing MELODY Edition features. The `.ino` comments are in English; all four interface languages remain available in Settings. The MELODY files are kept separately.
+This edition adds **EXAM** to all existing MELODY Edition features. The `.ino` comments and the interface are in English (the FR build has them in French); the language is fixed by the build and is no longer a setting. Other languages will be created on request: tell us in the comments. The MELODY files are kept separately.
 
 ## Start an exam
 
