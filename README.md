@@ -68,7 +68,7 @@ Detailed instructions: [French guide](Desk_Watch_1_TEACHER_Edition_FR/README_FR.
 - **Timer:** after starting, turn the dial to open the menu without stopping the countdown. Duration is adjustable from one minute to four hours before starting.
 - **Background timer indicator:** **M**, including on the Counter page. **C** indicates a running stopwatch and **A** an armed alarm.
 - **Menu order:** Timer is followed immediately by Counter. The French chess entry is explicitly labelled **Pend. echecs**.
-- **Melody player:** Happy Birthday, Für Elise, Super Mario Bros and Tetris. The four extra alarm themes are reserved for the alarm.
+- **Melody player:** Happy Birthday, Für Elise, Super Bros and Tetrix. The four extra alarm themes are reserved for the alarm.
 - **Dice:** D2, D4, D6, D8, D10, D12, D20, D30 and D100.
 - **Chess clock:** ten time controls, including 5+3.
 - **Settings:** Brightness, Volume, Boot sound, Auto sleep, Night mode, Set time and Favorite. The language is fixed by the build (FR or EN).
