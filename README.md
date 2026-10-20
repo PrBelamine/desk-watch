@@ -12,9 +12,9 @@ An Arduino UNO R3 desk console with Grove modules, a 16×2 RGB LCD, one button a
 | **MELODY** | 10 entries | Climate display, Pomodoro timer, counter, stopwatch, alarm, dice, chess clock, Melody player and settings |
 | **TEACHER** | 11 entries | All MELODY features plus **EXAM** |
 
-Both editions provide **FR- and EN-commented source files**. These suffixes describe the comments in the code. The LCD interface still supports French, English, Spanish and German through Settings.
+Each edition ships in **two language builds: FR (French) and EN (English)**. In a given build, the LCD interface and the code comments use that single language, and there is no language choice in Settings. Keeping one language frees about 6 KB of program storage on the Arduino UNO. **Versions in other languages (Spanish, German...) and other editions will be created on request: tell us in the comments.**
 
-| Edition | French comments | English comments |
+| Edition | French build (FR) | English build (EN) |
 |---|---|---|
 | MELODY | [MELODY FR](Desk_Watch_1_MELODY_Edition_FR/Desk_Watch_1_MELODY_Edition_FR.ino) | [MELODY EN](Desk_Watch_1_MELODY_Edition_EN/Desk_Watch_1_MELODY_Edition_EN.ino) |
 | TEACHER | [TEACHER FR](Desk_Watch_1_TEACHER_Edition_FR/Desk_Watch_1_TEACHER_Edition_FR.ino) | [TEACHER EN](Desk_Watch_1_TEACHER_Edition_EN/Desk_Watch_1_TEACHER_Edition_EN.ino) |
@@ -71,7 +71,7 @@ Detailed instructions: [French guide](Desk_Watch_1_TEACHER_Edition_FR/README_FR.
 - **Melody player:** Happy Birthday, Für Elise, Super Mario Bros and Tetris. The four extra alarm themes are reserved for the alarm.
 - **Dice:** D2, D4, D6, D8, D10, D12, D20, D30 and D100.
 - **Chess clock:** ten time controls, including 5+3.
-- **Settings:** Language, Brightness, Volume, Boot sound, Auto sleep, Night mode, Set time and Favorite.
+- **Settings:** Brightness, Volume, Boot sound, Auto sleep, Night mode, Set time and Favorite. The language is fixed by the build (FR or EN).
 
 ## Menu tree
 
@@ -113,7 +113,7 @@ Modules use Grove cables; no soldering is needed. LCD, SHT31/SHT40 and RTC share
 
 Install **Grove - LCD RGB Backlight** in Arduino IDE, select **Arduino Uno**, open the desired edition and upload. The sketch reads SHT31/SHT40 and RTC directly over I2C.
 
-The current TEACHER FR and EN builds compile for `arduino:avr:uno` using **Arduino AVR Boards 1.8.8**, **Grove - LCD RGB Backlight 1.0.2** and Arduino CLI 1.5.1. Each uses **32,256 / 32,256 bytes of program storage** and **486 / 2,048 bytes of global RAM**. Firmware size depends on the build configuration.
+The current TEACHER FR and EN builds compile for `arduino:avr:uno` using **Arduino AVR Boards 1.8.8**, **Grove - LCD RGB Backlight 1.0.2** and Arduino CLI 1.5.1. Each now uses about **80 % of the program storage** (TEACHER previously used 100 %), leaving roughly 6 KB free, and about **23 % of global RAM**. Firmware size depends on the build configuration.
 
 EXAM has passed source-derived logic tests for setup, 35 min / 24 papers, rapid presses, pause/resume, correction, extensions, expiry, final elapsed time, end confirmation and `millis()` rollover. Startup menu selection was checked at different initial dial positions. The new EXAM app still needs a physical device check; the earlier separate timer/counter workflow was used in class.
 
