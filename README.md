@@ -19,7 +19,7 @@ Both editions provide **FR- and EN-commented source files**. These suffixes desc
 | MELODY | [MELODY FR](Desk_Watch_1_MELODY_Edition_FR/Desk_Watch_1_MELODY_Edition_FR.ino) | [MELODY EN](Desk_Watch_1_MELODY_Edition_EN/Desk_Watch_1_MELODY_Edition_EN.ino) |
 | TEACHER | [TEACHER FR](Desk_Watch_1_TEACHER_Edition_FR/Desk_Watch_1_TEACHER_Edition_FR.ino) | [TEACHER EN](Desk_Watch_1_TEACHER_Edition_EN/Desk_Watch_1_TEACHER_Edition_EN.ino) |
 
-Keep each `.ino` inside its identically named folder when opening it in Arduino IDE. Earlier folders and releases are previous firmware versions; the four files above are the current edition sources. The embedded LCD manual has been removed.
+Keep each `.ino` inside its identically named folder when opening it in Arduino IDE. Earlier releases and Git history retain previous firmware versions; the four files above are the current edition sources. The embedded LCD manual has been removed.
 
 ## EXAM: countdown and paper collection
 
@@ -101,17 +101,17 @@ The clock can also be selected as the Favorite page. The alarm and clock require
 |---|---|
 | Arduino UNO R3 + Grove Base Shield V2.0 | USB for power/programming |
 | Grove LCD RGB Backlight V4.0, 16×2 | I2C |
-| Grove SHT31 temperature/humidity sensor, 0x44 | I2C |
+| Grove SHT31/SHT40 temperature/humidity sensor, 0x44 | I2C |
 | Optional DS1307 or DS3231 RTC, 0x68 | I2C |
 | Grove buzzer | D3 |
 | Grove button | D4 |
 | Grove rotary angle sensor | A1 |
 
-Modules use Grove cables; no soldering is needed. LCD, SHT31 and RTC share the I2C bus at different addresses. These physical sketches implement the **SHT31** protocol.
+Modules use Grove cables; no soldering is needed. LCD, SHT31/SHT40 and RTC share the I2C bus at different addresses. The current driver uses the earlier module command set at I2C 0x44; SHT40 hardware compatibility remains to be verified.
 
 ## Build and validation
 
-Install **Grove - LCD RGB Backlight** in Arduino IDE, select **Arduino Uno**, open the desired edition and upload. The sketch reads SHT31 and RTC directly over I2C.
+Install **Grove - LCD RGB Backlight** in Arduino IDE, select **Arduino Uno**, open the desired edition and upload. The sketch reads SHT31/SHT40 and RTC directly over I2C.
 
 The current TEACHER FR and EN builds compile for `arduino:avr:uno` using **Arduino AVR Boards 1.8.8**, **Grove - LCD RGB Backlight 1.0.2** and Arduino CLI 1.5.1. Each uses **32,256 / 32,256 bytes of program storage** and **486 / 2,048 bytes of global RAM**. Firmware size depends on the build configuration.
 
@@ -121,7 +121,7 @@ EXAM has passed source-derived logic tests for setup, 35 min / 24 papers, rapid 
 
 [Open the existing Desk Watch simulator](https://wokwi.com/projects/478193958373775361).
 
-The existing simulation uses a DHT22 on D2 as a substitute for the physical SHT31. It is an earlier simulator build, not verification of the current TEACHER firmware or EXAM app.
+The existing simulation uses a DHT22 on D2 as a substitute for the physical SHT31/SHT40. It is an earlier simulator build, not verification of the current TEACHER firmware or EXAM app.
 
 ## Photos and documentation
 
@@ -146,7 +146,7 @@ See the existing `docs` directory for the wiring image and earlier user guide; u
 ## Project pages and enclosure
 
 - [GitHub](https://github.com/PrBelamine/desk-watch)
-- [Hackster project](https://www.hackster.io/belaminelfay/desk-watch-arduino-uno-multi-app-desk-console-0709c7)
+- [Hackster project](https://www.hackster.io/belaminelfay/desk-watch-arduino-uno-console-melody-teacher-editions-0709c7)
 - [Arduino Forum topic](https://forum.arduino.cc/t/desk-watch-an-arduino-uno-desk-console-with-9-apps-climate-alerts-pomodoro-dice-chess-clock/1464130)
 - [3D-printed case and print profiles on MakerWorld](https://makerworld.com/models/3451026)
 
