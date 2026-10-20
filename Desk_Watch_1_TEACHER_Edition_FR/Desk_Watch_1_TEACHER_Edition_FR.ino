@@ -223,8 +223,8 @@ static const uint8_t MUSIC_NOTE_COUNTS[N_MUSIC] PROGMEM = {
 static const char MUSIC_NAMES[] PROGMEM =
   "Anniversaire\0"
   "Pour Elise\0"
-  "Mario Bros\0"
-  "Tetris\0";
+  "Super Bros\0"
+  "Tetrix\0";
 // Créations réservées au réveil : fréquences en hertz et durées par unités de 10 ms ; zéro indique un silence.
 // Aurora : arpèges majeurs fluides, puis résolution lumineuse dans les aigus.
 static const uint16_t AURORA_NOTE[] PROGMEM = {
