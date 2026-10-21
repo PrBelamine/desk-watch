@@ -1,6 +1,6 @@
 # Desk Watch — MELODY & TEACHER Editions
 
-![Desk Watch](docs/photos/Cover_4by3 (2).png)
+![Desk Watch](docs/photos/main_cover.png)
 ![Desk Watch assembled](docs/2.jpg)
 
 An Arduino UNO R3 desk console with Grove modules, a 16×2 RGB LCD, one button and one rotary dial. It combines climate monitoring, timekeeping and desk tools. **TEACHER Edition adds an EXAM app that combines an exam countdown and paper collection on one screen.**
