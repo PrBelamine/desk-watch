@@ -1,72 +1,73 @@
-// Desk Watch 1 — TEACHER Edition: Exam / Temp & Hum / Timer / Counter / Stopwatch / Alarm / Dice / Chess / Melody / Clock
-// Hardware : Arduino UNO + Grove Base Shield, LCD RGB V4.0 (I2C),
-//            SHT31 (I2C 0x44), buzzer D3, button D4, potentiometer (dial) A1,
-//            optional RTC DS1307 / DS3231 (I2C 0x68).
-// Required library: "Grove - LCD RGB Backlight" (rgb_lcd.h).
-// SHT31 and RTC are read directly over I2C: no other library needed.
+// Desk Watch : TEACHER EDITION — examen, température et humidité, minuteur Pomodoro, compteur, chronomètre, réveil, dé, pendule d'échecs et mélodies, pilotés par un bouton et une molette.
 //
-// All functions run in the background (humidity, alarm, pomodoro, stopwatch).
+// Matériel : Arduino UNO + Grove Base Shield ; écran Grove LCD RGB V4.0 (I2C) ; capteur SHT31 ou SHT40 (I2C 0x44, détecté automatiquement) ;
+//            buzzer sur D3 ; bouton Grove sur D4 ; potentiomètre rotatif Grove (molette) sur A1 ; module RTC DS1307 ou DS3231 OBLIGATOIRE (I2C 0x68).
+// Le RTC fournit l'heure, le réveil et le mode nuit automatique. Sans RTC, l'appareil démarre et Temp et Hum reste utilisable (heure affichée « --:--:-- »),
+// mais l'horloge, le réglage de l'heure et le réveil affichent « Installer module RTC », et le mode nuit automatique est inactif.
+// Bibliothèque requise : « Grove - LCD RGB Backlight » (rgb_lcd.h). Le SHT et le RTC sont lus directement en I2C : aucune autre bibliothèque.
+// TEACHER reprend MELODY (bouton et molette) et ajoute l'application EXAMEN : compte à rebours et collecte des copies sur un seul écran.
 //
-// Navigation:
-//   Long press: open the MENU; during an EXAM session, open its controls; inside the MENU, go back to the page
-//   Home                  : combined Temp & Hum / RTC time; stable when OK, alternates only for alerts; short press = MENU
-//   Menu: Favorite, Exam, Temp & Hum, Timer, Counter, Stopwatch, Alarm, Dice, Chess clock, Melody, Settings
-//   Settings: brightness, volume, startup sound, auto sleep, night mode, set time, favorite
-//   Night mode   : No / Auto (22:00 to 06:00, with RTC) / Yes : screen dimmed to 8 %, no alert beeps, melody muted ; the alarm still rings and displays normally
-//   Dial: turn right = next value / entry
-//   Settings             : dial = choose, short press = open / confirm
-//   Startup              : DESK WATCH, short melody, PR BELAMINE MAKERLAB, Teacher Edition loading bar, module check
-//   MENU                 : dial = scroll, short press = enter
+// ---- Commandes ----
+//   MOLETTE             : défiler le menu, changer une valeur ; sa position choisit l'entrée ou la valeur (tourner à droite = suivant ou plus).
+//   APPUI COURT         : OK (confirmé 0,3 s après le relâchement, pour laisser place au double clic).
+//   DOUBLE CLIC         : deux appuis en moins de 0,3 s ; action propre à la page (voir ci-dessous).
+//   APPUI LONG          : (0,8 s ou plus) retour : menu, annuler, étape précédente.
+//   La mise en veille se lance depuis l'entrée « Mode veille » du menu ; un appui ou un tour de molette réveille l'appareil.
+//   Réglages du câblage : BTN_ACTIVE (bouton) et POT_MAX (1023 en 5 V, 675 si le sélecteur du shield est sur 3,3 V).
 //
-// Functions:
-//   Exam: 1-240 minutes, 1-99 papers; short press counts a paper, including after time is up.
-//         Long press opens controls: back, subtract a paper, pause/resume, +5 min, confirm ending, main menu.
-//         Countdown continues in the background; automatic sleep is disabled throughout the session.
-//   Temp & Hum   : row 1 RTC time and background badges, always visible; row 2 temperature, humidity and OK.
-//                  Alerts replace row 2 every 2 s (measurements / temperature alert / measurements / humidity alert).
-//                  RGB colours the whole screen according to the displayed alert.
-//                  TOO HIGH (red) / TOO LOW (blue) / OK (green) ; double click = set the 4 thresholds
-//                  (T low, T high, H low, H high) with the dial, short press = next then confirm ;
-//                  thresholds are saved and reused at startup
-//   Counter      : each short press = +1 (immediate) ; dial = ask for a reset (OK = yes, double click or 5 s = no)
-//   Dice         : short press = roll (tick for 1 s then result), dial = number of sides (2, 4, 6, 8, 10, 12, 20, 30, 100), double click = menu
-//   Music        : dial = choose a melody, short press = play / pause / resume, double click = menu
-//   Chess        : two-player clock ; dial = time control (1+0 to 60+0, 5+3...), short press = start then next player, double click = pause / reset / menu
-//   Alarm (menu) : short press = set hours, minutes, armed, melody, alarm volume; double click = arm / disarm
-//                  Dial chooses each value; click advances and saves after volume. Melody repeats until stopped / snoozed.
-//                  Melody and alarm-volume settings play a live preview; leaving either setting stops the preview.
-//                  Melody selection previews at minimum volume; volume selection previews at the chosen alarm volume.
-//                  Eight alarm choices: the four Music tracks plus Aurora, Cosmic Pulse, Arcade Hero and Epic Rise.
-//   Pomodoro     : short press = start / pause, double click = reset (then, if already at zero, back to the menu),
-//                  when stopped, the potentiometer sets the work duration (1 min to 4 h)
-//   Stopwatch    : short press = start / stop, double click = reset, then (already at zero) double click or dial = menu
-//   Set time (Settings) : potentiometer = value, short press = next then confirm, long press = cancel
-//   Brightness (Settings) : potentiometer = level (5 to 100 %), short press = confirm, long press = cancel
-//   Ringing      : short press or double click = snooze, long press = stop
-//   Very long press (more than 2.5 s) : go to sleep (screen off, alarm active) ; while asleep, a press wakes it up
-//   Auto sleep   : delay set in Settings (never, 1, 2, 5, 10, 15, 30 min, 1 h) after the last press or dial turn ;
-//                        no auto sleep during a chess game in progress
-//   UNO LED (pin 13) : on while asleep and when the button is held for more than 2.5 s
-//   A short press is confirmed 0.3 s after release (double-click delay).
-//   Letters at the top right : ! temperature / humidity alert, A alarm armed, C stopwatch running,
-//                              M timer running on every page (last column, blinks off for 1 s every 10 s)
+// ---- Menu (11 entrées) ----
+//   Examen, Temp et Hum, Minuteur, Compteur, Chrono, Réveil, Dé, Pendule d'échecs, Mélodie, Paramètres, Mode veille.
+//   Le favori n'est pas une entrée du menu : il se choisit dans Paramètres (Menu par défaut, Temp et Hum, Minuteur, Chrono, Compteur, Dé, Pendule d'échecs, Examen) et fixe la page affichée au démarrage.
+//   Paramètres (8) : luminosité, volume, son de démarrage, veille automatique, mode nuit, réglage de l'heure, favori, réglage usine.
+//   Le son de démarrage est désactivé par défaut (réglable dans Paramètres). Les réglages sont enregistrés en EEPROM.
+//
+// ---- Pages ----
+//   Examen      : réglage de la durée (1 à 240 min, molette puis appui court) et des copies attendues (1 à 99), puis appui court pour démarrer (suggestion : 35 min / 24 copies).
+//                 Pendant l'examen, chaque appui court compte une copie immédiatement (même après la fin du temps) ; deux appuis rapides comptent deux copies.
+//                 Appui long = commandes (molette puis appui court) : retour, retirer une copie, pause ou reprise, +5 min, terminer (avec confirmation), menu principal ; double clic = fermer les commandes.
+//                 À zéro : deux bips courts, la collecte reste possible. Toutes les copies rendues : écran vert. Le message final alterne avec le temps de travail effectif, hors pauses.
+//                 Le décompte continue en arrière-plan quand on ouvre le menu ; la veille automatique est suspendue pendant la session. La session reste en RAM : elle ne survit pas à une coupure.
+//   Temp et Hum : ligne 1 = heure RTC et indicateurs des fonctions en arrière-plan ; ligne 2 = température, humidité et OK.
+//                 En alerte, la ligne 2 alterne toutes les 2 s : mesures / alerte température / mesures / alerte humidité.
+//                 Le rétroéclairage colore l'écran : trop haut = rouge, trop bas = bleu, OK = vert.
+//                 DOUBLE CLIC = régler les quatre seuils (Tmin, Tmax, Hmin, Hmax) : molette = valeur, appui court = seuil suivant, puis appui court pour enregistrer ; appui long = seuil précédent.
+//                 Les seuils sont enregistrés et réutilisés au démarrage. Appui court = menu. Le menu s'ouvre sur l'entrée de la page quittée ; tourner la molette reprend la main.
+//                 La molette change de page (flèches <> à gauche de l'horloge) : 1 mesures, 2 minimum, 3 maximum, 4 moyenne, 5 « AUT » (en alternance avec les flèches) qui fait défiler les quatre pages toutes les 3 s.
+//   Minuteur (Pomodoro) : appui court = démarrer ou pause ; double clic = remise à zéro (puis retour au menu si déjà à zéro).
+//                 À l'arrêt, la molette règle la durée de travail (1 à 60 min, puis 65 min à 4 h par pas de 5). Pauses de 5 min, longue pause de 15 min toutes les 4 séances.
+//                 Une fois lancé, tourner la molette ouvre le menu ; le décompte continue en arrière-plan.
+//   Compteur    : chaque appui court ajoute 1 immédiatement. Tourner la molette ouvre l'écran d'action : appui court = -1, double clic = remise à zéro, 5 s sans réponse ou appui long = annuler.
+//   Chrono      : appui court = démarrer ou arrêter ; double clic = remise à zéro ; si déjà à zéro, double clic = menu ; tourner la molette = menu (le chrono continue).
+//   Réveil      : appui court = activer et régler (heures, minutes, mélodie, volume ; appui court = étape suivante, appui long = étape précédente), double clic = désactiver. Huit sonneries, avec préécoute.
+//                 Tourner la molette sur l'écran d'accueil du réveil ouvre le menu.
+//                 Pendant la sonnerie : tout appui ou tour de molette l'arrête pour la journée et ouvre le menu. Sans réaction : arrêt après 120 s, reprise 5 min plus tard, jusqu'à un contact.
+//   Dé          : appui court = lancer (cliquetis 1 s, puis résultat) ; molette = nombre de faces (2, 4, 6, 8, 10, 12, 20, 30, 100) ; double clic = menu.
+//   Pendule d'échecs : molette = cadence à l'arrêt (1+0, 3+0, 3+2, 5+0, 5+3, 10+0, 10+5, 15+10, 20+0, 30+0, 60+0) ; appui court = démarrer. En partie, appui court = passer à l'autre joueur ;
+//                 double clic = pause ; ensuite appui court = reprendre, double clic = remise à zéro, appui long = menu.
+//   Mélodie     : molette = choisir ; appui court = lire, pause ou reprise ; double clic = menu.
+//   Mode nuit   : Non / Auto (22 h à 6 h, avec RTC) / Oui : luminosité réduite à 8 %, bips d'alerte et mélodie de démarrage coupés ; le réveil sonne normalement.
+//   Veille automatique : jamais, 1, 2, 5, 10, 15, 30 min ou 1 h sans activité (appui ou mouvement de la molette) ; désactivée pendant une partie d'échecs en cours.
+//   Mode veille : écran éteint, réveil toujours actif. La LED de l'UNO (broche 13) s'allume en veille.
+//   Indicateurs en haut à droite : ! = alerte température / humidité ; R = réveil activé ; C = chronomètre en cours ; M = minuteur en cours (colonne masquée 1 s toutes les 10 s).
+//   Démarrage : DESK WATCH, courte mélodie (si activée), PR BELAMINE MAKERLAB, barre de chargement TEACHER, vérification des modules.
+//
+// Les noms internes « molette » (potLive, potReset, potSelect…) désignent le potentiomètre rotatif.
 
 #include <Wire.h>
 #include <EEPROM.h>
 #include <rgb_lcd.h>
 
-// Repeated flash strings are shared without changing any translation.
+// Textes répétés mutualisés en mémoire flash, sans changer les traductions.
 static const char TXT_EMPTY_0[] PROGMEM = "";
 static const char TXT_12s_OK_1[] PROGMEM = "%-12s OK";
 static const char TXT_s_laeuft_2[] PROGMEM = "%s laeuft";
 static const char TXT_s_running_3[] PROGMEM = "%s running";
 static const char TXT_u_min_4[] PROGMEM = "%u min";
-static const char TXT_12s_5[] PROGMEM = "> %-12s";
+static const char TXT_12s_5[] PROGMEM = "<> %-12s";
 static const char TXT_Auto_22_6h_6[] PROGMEM = "Auto 22-6h";
 static const char TXT_Brightness_7[] PROGMEM = "Brightness";
 static const char TXT_Brillo_8[] PROGMEM = "Brillo";
 static const char TXT_Capteur_absent_9[] PROGMEM = "Capteur absent";
-static const char TXT_D_3u_3u_10[] PROGMEM = "D%-3u        %3u";
 static const char TXT_DESK_WATCH_11[] PROGMEM = "DESK WATCH";
 static const char TXT_FIN_12[] PROGMEM = "FIN";
 static const char TXT_Helligkeit_13[] PROGMEM = "Helligkeit";
@@ -86,105 +87,108 @@ static const char TXT_Sensor_OK_26[] PROGMEM = "Sensor OK";
 static const char TXT_Sensor_ausente_27[] PROGMEM = "Sensor ausente";
 static const char TXT_Sensor_fehlt_28[] PROGMEM = "Sensor fehlt";
 static const char TXT_Sensor_missing_29[] PROGMEM = "Sensor missing";
-static const char TXT_TIMER_d_30[] PROGMEM = "TIMER    #%d";
-static const char TXT_Volume_31[] PROGMEM = "Volume";
-#define TR_PTR(fr, en, es, de) (en)
 
-// ---------- Settings ----------
+static const char TXT_Volume_31[] PROGMEM = "Volume";
+#define TR_PTR(fr, en, es, de) (fr)
+
+// ---------- Réglages ----------
 const uint8_t PIN_BUZZER = 3;
 const uint8_t PIN_BUTTON = 4;
-const uint8_t PIN_LED    = 13;         // UNO L LED ; for a real red LED, plug in a Grove LED module and change this number
-const unsigned long LED_HOLD_MS = 2500;   // the LED turns on when the button is held long enough for sleep
+const uint8_t PIN_LED    = 13;         // LED L de l’UNO ; pour une LED rouge externe, brancher un module Grove LED et adapter cette broche.
 const uint8_t PIN_POT    = A1;
-const uint8_t BTN_ACTIVE = HIGH;          // Grove module: HIGH = pressed
-const int  POT_MAX   = 1023;              // 675 if the shield switch is set to 3.3 V
+const uint8_t BTN_ACTIVE = HIGH;          // Module Grove : HIGH signifie que le bouton est appuyé.
+const int  POT_MAX   = 1023;              // Utiliser 675 si le sélecteur du shield est positionné sur 3,3 V.
 
-// Alert thresholds (as in the V6 station): value >= high threshold = TOO HIGH, <= low threshold = TOO LOW.
-// Default values ; adjustable by double click on the Temp & Hum page and saved.
-const uint8_t T_LO_DEFAULT2 = 40, T_HI_DEFAULT2 = 56;   // temperature in half-degrees: 20.0 and 28.0 C
-const uint8_t H_LO_DEFAULT  = 40, H_HI_DEFAULT  = 60;   // humidity in %
-const uint8_t T_MIN2 = 20, T_MAX2 = 80, T_GAP2 = 2;     // range 10 to 40 C in 0.5 C steps, minimum gap 1 C
-const uint8_t H_MIN  = 10, H_MAX  = 90, H_GAP  = 5;     // range 10 to 90 %, minimum gap 5 points
-const int T_MARGE10 = 3, H_MARGE10 = 20;                 // anti-flicker margin around a threshold (in tenths: 0.3 C and 2 %)
-const int TEMP_OFFSET10 = 0, HUM_OFFSET10 = 0;           // correction in tenths after comparison with a reference
+// Seuils d’alerte : valeur >= seuil haut = trop haut ; valeur <= seuil bas = trop bas, comme sur la station V6.
+// Valeurs par défaut, réglables par double clic sur Temp et Hum et enregistrées en mémoire.
+const uint8_t T_LO_DEFAULT2 = 40, T_HI_DEFAULT2 = 56;   // Température en demi-degrés : 20,0 et 28,0 °C.
+const uint8_t H_LO_DEFAULT  = 40, H_HI_DEFAULT  = 60;   // Humidité en pourcentage.
+const uint8_t T_MIN2 = 20, T_MAX2 = 80, T_GAP2 = 2;     // Plage de 10 à 40 °C, par pas de 0,5 °C ; écart minimal de 1 °C.
+const uint8_t H_MIN  = 10, H_MAX  = 90, H_GAP  = 5;     // Plage de 10 à 90 % ; écart minimal de 5 points.
+const int T_MARGE10 = 3, H_MARGE10 = 20;                 // Marge anti-oscillation autour des seuils, en dixièmes : 0,3 °C et 2 %.
+const int TEMP_OFFSET10 = 0, HUM_OFFSET10 = 0;           // Correction en dixièmes après comparaison avec un instrument de référence.
 
 const unsigned long SNOOZE_MS  = 5UL * 60000UL;
-const unsigned long RING_MAX_S = 120;     // maximum ringing time before automatic snooze
-const uint8_t NIGHT_START = 22, NIGHT_END = 6;   // dimmed screen
+const unsigned long RING_MAX_S = 120;     // Durée maximale de sonnerie avant report automatique.
+const uint8_t NIGHT_START = 22, NIGHT_END = 6;   // Plage horaire du rétroéclairage atténué.
 
 const uint8_t SHORT_BREAK_MIN = 5, LONG_BREAK_MIN = 15, LONG_EVERY = 4;
-// work durations: 1 to 60 min in 1 min steps, then 65 min to 4 h in 5 min steps
+// Durées de travail : de 1 à 60 min par pas de 1 min, puis de 65 min à 4 h par pas de 5 min.
 const uint8_t N_WORK = 96;
 uint8_t workValue(uint8_t i) { return i < 60 ? i + 1 : 60 + (i - 59) * 5; }
 
 const uint8_t SHT_ADDR = 0x44, RTC_ADDR = 0x68;
 
-const uint8_t BRIGHT_LEVELS[8] = { 5, 10, 20, 30, 50, 70, 85, 100 };   // % of the backlight
+const uint8_t BRIGHT_LEVELS[8] = { 5, 10, 20, 30, 50, 70, 85, 100 };   // Niveaux de rétroéclairage, en pourcentage.
 
-// ---------- State ----------
+// ---------- États ----------
 rgb_lcd lcd;
 
-enum { M_TH, M_POMO, M_CHRONO, M_TALLY, M_DIE, M_CHESS, M_MUSIC, M_PARAMS, M_HOME, M_ALARM, M_SETCLOCK, M_BRIGHT, M_MENU, M_CLOCK, M_EXAM };
+enum { M_TH, M_POMO, M_CHRONO, M_TALLY, M_DIE, M_CHESS, M_MUSIC, M_PARAMS, M_HOME, M_ALARM, M_SETCLOCK, M_BRIGHT, M_MENU, M_CLOCK, M_SLEEP, M_EXAM };
 const uint8_t N_MENU = 11;
-const uint8_t N_PAR = 7;   // visible settings (the language choice was removed: one language per edition)
-uint8_t mode = M_HOME, prevMode = M_HOME;   // M_* values
+const uint8_t N_PAR = 8;   // visible settings (the language choice was removed: one language per edition)
+uint8_t mode = M_HOME, prevMode = M_HOME;   // Valeurs de l’énumération M_*.
 uint8_t menuIdx = 0;
 uint8_t brightBackup = 100, brightIdx = 7;
 
 enum { EV_NONE, EV_SHORT, EV_LONG, EV_VLONG, EV_DOUBLE, EV_PRESS };
 
-struct Settings { uint8_t magic, aH, aM, armed, workMin, bright, tLo2, tHi2, hLo, hHi, sound, lang, volume, home, night, sleep; } cfg;   // lang: 0 French, 1 English, 2 Spanish, 3 German ; home: page opened by Home (0 auto, 1 Temp & Hum, 2 clock, 3 timer, 4 stopwatch, 5 counter) ; night: night mode (0 no, 1 auto by time of day, 2 yes) ; sleep: auto sleep delay (index into SLEEP_MIN, 0 = never)
+struct Settings { uint8_t magic, aH, aM, armed, workMin, bright, tLo2, tHi2, hLo, hHi, sound, lang, volume, home, night, sleep; } cfg;   // lang : 0 français, 1 anglais, 2 espagnol, 3 allemand ; home : favori (0 menu, 1 Temp et Hum, 2 minuteur, 3 chrono, 4 compteur, 5 dé, 6 pendule d’échecs) ; night : mode nuit (0 non, 1 automatique avec RTC, 2 oui) ; sleep : indice du délai dans SLEEP_MIN (0 = jamais).
 
-// text of this edition (one language per build: the file name gives it), in flash memory
-#define TR(fr, en, es, de) PSTR(en)
+// Textes de cette édition (une seule langue par version : le nom du fichier l’indique), conservés en mémoire flash.
+#define TR(fr, en, es, de) PSTR(fr)
 
-// clock
+// Horloge.
 bool rtcPresent = false;
 unsigned long swSecs = 0, swRefMs = 0;
 uint8_t nowH = 0, nowM = 0, nowS = 0;
 
-// sensor
-int temp10 = 0, hum10 = 0;      // temperature (tenths of C) and humidity (tenths of %): no floating-point math, to save memory
+// Capteur.
+int temp10 = 0, hum10 = 0;      // Température en dixièmes de °C et humidité en dixièmes de % ; calculs entiers pour économiser la mémoire.
 bool shtOk = false;
-uint8_t tState = 0, hState = 0;   // 0 OK, 1 TOO HIGH, 2 TOO LOW
+uint8_t tState = 0, hState = 0;   // 0 = OK, 1 = trop haut, 2 = trop bas.
 
-// alarm
-uint8_t clockSub = 0;       // Set time page: 1 hours, 2 minutes
-uint8_t alarmSub = 0;       // 0 view, 1 hours, 2 minutes, 3 armed, 4 melody, 5 volume
-// Separate EEPROM extension preserves the existing settings and their addresses.
+// Réveil.
+uint8_t clockSub = 0;       // Réglage de l’heure : 1 = heures, 2 = minutes.
+uint8_t alarmSub = 0;       // 0 activation, 1 hours, 2 minutes, 3 melody, 4 volume, 5 confirmation.
+bool alarmExitPending = false;
+unsigned long alarmExitAt = 0;
+bool alarmSavedPending = false;
+unsigned long alarmSavedReturnAt = 0;
+// Extension EEPROM distincte pour préserver les réglages existants et leurs adresses.
 struct AlarmSettings { uint8_t magic, melody, volume; } alarmCfg;
 uint8_t alarmPos = 0;
 unsigned long alarmNoteEnd = 0;
 bool alarmPreview = false;
 uint8_t previewMelody = 0, previewVolume = 0;
-uint8_t parSub = 0, parBackup = 0;   // setting open? value before editing
-uint8_t parIdx = 1;          // Settings page (internal ids): 1 brightness, 2 volume, 3 startup sound, 4 auto sleep, 5 night mode, 6 set time, 7 favorite
-unsigned int tallyCount = 0;  // hand tally counter
-uint8_t tallySub = 0;         // 0 counting, 1 reset confirmation
+uint8_t parSub = 0, parBackup = 0;   // Réglage ouvert et valeur sauvegardée avant modification.
+uint8_t parIdx = 1;          // Page Paramètres : 1 luminosité, 2 volume, 3 son, 4 veille, 5 mode nuit, 6 heure, 7 favori, 8 réglage usine
+unsigned int tallyCount = 0;  // Compteur manuel.
+uint8_t tallySub = 0;         // 0 = comptage, 1 = confirmation de remise à zéro.
 unsigned long tallyT0 = 0;
-unsigned long tapMs = 0;      // time of the last short press release
-bool tapFlag = false;         // a short press has just been released (counts immediately, without waiting for the double-click delay)
-// dice: possible sides (2 = coin flip, 30 = pick a student from the class)
+unsigned long tapMs = 0;      // Instant du dernier relâchement après un appui court.
+bool tapFlag = false;         // Un appui court vient d’être relâché ; comptage immédiat sans attendre le délai du double clic.
+// Faces possibles du dé : 2 = pile ou face ; 30 = tirer un élève de la classe au sort.
 const uint8_t N_DIE = 9;
 static const uint8_t DIE_FACES[N_DIE] PROGMEM = { 2, 4, 6, 8, 10, 12, 20, 30, 100 };
-uint8_t dieIdx = 2, dieVal = 0, dieShow = 0;   // chosen sides (D6 at start), last result, value displayed during the roll
+uint8_t dieIdx = 2, dieVal = 0, dieShow = 0;   // Indice du dé choisi (D6 au démarrage), dernier résultat et valeur affichée pendant le lancer.
 bool dieRolling = false;
 unsigned long dieEnd = 0;
-// chess clock: time controls (minutes, increment in seconds)
-const uint8_t N_CHESS = 10;
-static const uint8_t CHESS_MIN[N_CHESS] PROGMEM = { 1, 3, 3, 5, 5, 10, 10, 15, 30, 60 };
-static const uint8_t CHESS_INC[N_CHESS] PROGMEM = { 0, 0, 2, 0, 3, 0, 5, 10, 0, 0 };
-uint8_t chessIdx = 4;                 // 5+3 at start
-uint8_t chessState = 0;               // 0 waiting, 1 running, 2 paused, 3 time out
-uint8_t chessSide = 0;                // player whose clock is running (0 or 1)
-long chessBase[2];                    // time left for each player at the start of their turn (ms)
-unsigned long chessTurn = 0;          // time the turn started
+// Cadences d’échecs : durée en minutes et incrément en secondes.
+const uint8_t N_CHESS = 11;
+static const uint8_t CHESS_MIN[N_CHESS] PROGMEM = { 1, 3, 3, 5, 5, 10, 10, 15, 20, 30, 60 };
+static const uint8_t CHESS_INC[N_CHESS] PROGMEM = { 0, 0, 2, 0, 3, 0, 5, 10, 0, 0, 0 };
+uint8_t chessIdx = 4;                 // Cadence initiale : 5 min + 3 s par coup.
+uint8_t chessState = 0;               // 0 = attente, 1 = partie en cours, 2 = pause, 3 = temps écoulé.
+uint8_t chessSide = 0;                // Joueur dont le temps s’écoule : 0 ou 1.
+long chessBase[2];                    // Temps restant de chaque joueur au début de son tour, en millisecondes.
+unsigned long chessTurn = 0;          // Instant du début du tour.
 long chessLeft(uint8_t sd) {
   long v = chessBase[sd];
   if (chessState == 1 && sd == chessSide) v -= (long)(millis() - chessTurn);
   return v < 0 ? 0 : v;
 }
-// music notes (Hz) and lengths (x 10 ms), kept in flash
+// Notes en hertz et durées par unités de 10 ms, conservées en mémoire flash.
 const uint8_t N_BDAY = 25;
 static const uint16_t BD_NOTE[N_BDAY] PROGMEM = {
   349, 349, 392, 349, 466, 440,
@@ -221,12 +225,12 @@ static const uint8_t* const MUSIC_LENGTHS[N_MUSIC] PROGMEM = {
 static const uint8_t MUSIC_NOTE_COUNTS[N_MUSIC] PROGMEM = {
   N_BDAY, N_ELISE, N_MARIO, N_TETRIS };
 static const char MUSIC_NAMES[] PROGMEM =
-  "Birthday\0"
-  "Fur Elise\0"
-  "Super Bros\0"
-  "Tetrix\0";
-// Original alarm-only themes (Hz / duration in 10 ms units). Zero is a rest.
-// Aurora: flowing major arpeggios, then a bright upper-register resolution.
+  "Anniversaire\0"
+  "Pour Elise\0"
+  "Mario Bros\0"
+  "Tetris\0";
+// Créations réservées au réveil : fréquences en hertz et durées par unités de 10 ms ; zéro indique un silence.
+// Aurora : arpèges majeurs fluides, puis résolution lumineuse dans les aigus.
 static const uint16_t AURORA_NOTE[] PROGMEM = {
   523, 659, 784, 1047, 988, 784, 659, 0,
   587, 740, 880, 1175, 1047, 880, 740, 0,
@@ -235,7 +239,7 @@ static const uint8_t AURORA_LEN[] PROGMEM = {
   18, 18, 18, 36, 18, 18, 36, 12,
   18, 18, 18, 36, 18, 18, 36, 12,
   18, 18, 24, 36, 18, 18, 72, 24 };
-// Cosmic Pulse: syncopated minor pulses and a cascading answer.
+// Cosmic Pulse : pulsations mineures syncopées et réponse en cascade.
 static const uint16_t COSMIC_NOTE[] PROGMEM = {
   440, 0, 880, 659, 0, 523, 659, 0,
   440, 0, 988, 784, 0, 659, 523, 0,
@@ -246,7 +250,7 @@ static const uint8_t COSMIC_LEN[] PROGMEM = {
   12, 6, 24, 12, 6, 12, 24, 12,
   12, 6, 24, 12, 6, 12, 24, 12,
   12, 12, 12, 12, 18, 18, 48, 24 };
-// Arcade Hero: short upbeat calls, octave jumps and a victory flourish.
+// Arcade Hero : motifs courts et entraînants, sauts d’octave et finale de victoire.
 static const uint16_t ARCADE_NOTE[] PROGMEM = {
   784, 0, 784, 988, 1175, 0, 1568, 1175,
   1319, 0, 1175, 988, 1047, 0, 784, 0,
@@ -257,7 +261,7 @@ static const uint8_t ARCADE_LEN[] PROGMEM = {
   24, 6, 12, 12, 24, 6, 24, 12,
   12, 12, 24, 6, 12, 12, 24, 12,
   12, 12, 12, 12, 36, 12, 48, 24 };
-// Epic Rise: dotted fanfare, a rising sequence and a sustained final high note.
+// Epic Rise : fanfare pointée, progression ascendante et dernière note aiguë tenue.
 static const uint16_t EPIC_NOTE[] PROGMEM = {
   392, 0, 392, 523, 659, 0, 784, 659,
   587, 0, 587, 740, 880, 0, 1175, 880,
@@ -290,52 +294,58 @@ PGM_P alarmTuneName() {
 }
 
 uint8_t musicTrack = 0;
-uint8_t musicState = 0, musicPos = 0;  // 0 ready, 1 playing, 2 paused ; next note to play
-int musicRemain = 0;                  // time left on the current note (ms)
+uint8_t musicState = 0, musicPos = 0;  // 0 = prêt, 1 = lecture, 2 = pause ; indice de la prochaine note à jouer.
+int musicRemain = 0;                  // Durée restante de la note courante, en millisecondes.
 unsigned int musicFreq = 0;
 unsigned long musicNoteEnd = 0;
-uint8_t thSub = 0;          // threshold setting: 0 view, 1 T low, 2 T high, 3 H low, 4 H high
+uint8_t thSub = 0;          // 0 = display, 1-4 = thresholds, 5 = confirmation.
+bool thSavedPending = false;
+unsigned long thSavedReturnAt = 0;
+uint8_t thView = 0, thSampleCount = 0, thSamplePos = 0;
+int16_t thTempSamples[30] = {0}, thHumSamples[30] = {0};
+int32_t thTempSum = 0, thHumSum = 0;
 uint8_t edH = 0, edM = 0;
 bool ringing = false, snoozing = false;
-bool standby = false;       // sleep: screen off, alarm still active
-static const uint8_t SLEEP_MIN[8] PROGMEM = { 0, 1, 2, 5, 10, 15, 30, 60 };   // auto sleep delays (minutes, 0 = never)
-unsigned long lastActivity = 0;   // last press or dial movement
+bool standby = false;       // Veille : écran éteint, réveil toujours actif.
+static const uint8_t SLEEP_MIN[8] PROGMEM = { 0, 1, 2, 5, 10, 15, 30, 60 };   // Délais de veille automatique en minutes ; 0 = jamais.
+unsigned long lastActivity = 0;   // Dernier appui ou mouvement de la molette.
 int lastPotSample = 0;
 unsigned long lastPotCheck = 0;
-unsigned long btnHeld = 0;        // duration of the current press (ms), 0 if the button is released
+unsigned long btnHeld = 0;        // Durée de l’appui en cours, en millisecondes ; zéro si le bouton est relâché.
 unsigned long ringStart = 0, snoozeUntil = 0;
 int lastFiredMin = -1;
 
-// pomodoro
-uint8_t pomoPhase = 0;      // 0 work, 1 short break, 2 long break
+// Minuteur Pomodoro.
+uint8_t pomoPhase = 0;      // 0 = travail, 1 = pause courte, 2 = pause longue.
 uint8_t pomoCount = 0;
 bool pomoRun = false;
 unsigned long pomoRemMs = 0, pomoLast = 0;
 
-// stopwatch
+// Chronomètre.
 bool chronoRun = false;
 unsigned long chronoStart = 0, chronoAccum = 0;
 unsigned long chronoMs() { return chronoRun ? millis() - chronoStart : chronoAccum; }
 
-// potentiometer / display
-int potAnchor = 0; bool potActive = false;
+// Potentiomètre et affichage.
+bool potActive = false; int potAnchor = 0; bool dialAct = false;   // Molette : ancre, mouvement détecté, activité récente.
 uint8_t lastR = 255, lastG = 255, lastB = 255;
 unsigned long lastDraw = 0, lastClockRead = 0, lastSht = 0;
 
-// ---------- Utilities ----------
+// ---------- Fonctions utilitaires ----------
 uint8_t bcd2dec(uint8_t v) { return (v >> 4) * 10 + (v & 0x0F); }
 uint8_t dec2bcd(uint8_t v) { return ((v / 10) << 4) | (v % 10); }
 
-// smoothed reading: average of 8 samples (the first one, skewed by the multiplexer, is ignored)
+
+// Lecture lissée : moyenne de huit mesures ; la première, perturbée par le multiplexeur, est ignorée.
 int potRead() {
   analogRead(PIN_POT);
   long sum = 0;
   for (uint8_t i = 0; i < 8; i++) sum += analogRead(PIN_POT);
   int v = (int)(sum / 8);
   if (v > POT_MAX) v = POT_MAX;
-  return POT_MAX - v;                              // reversed direction: turning right = increasing value
+  return POT_MAX - v;                              // Sens inversé : tourner à droite augmente la valeur.
 }
-// choice among n values from the dial, with hysteresis around the boundaries
+// Choix parmi n valeurs à la molette, avec hystérésis aux limites des plages.
 uint8_t potSelect(uint8_t n, uint8_t cur, int margin) {
   const int zone = (POT_MAX + 1) / n;
   int raw = potRead();
@@ -351,7 +361,7 @@ uint8_t workIndex(uint8_t m) {
   uint8_t i = 59 + (m - 60 + 2) / 5;
   return i > N_WORK - 1 ? N_WORK - 1 : i;
 }
-// "25 min" up to 60 minutes, then "1h05"
+// Affichage « 25 min » jusqu’à 60 minutes, puis « 1h05 ».
 void fmtDuration(char* b, size_t n, unsigned m) {
   if (m <= 60) snprintf_P(b, n, TXT_u_min_4, m);
   else         snprintf_P(b, n, PSTR("%uh%02u"), m / 60, m % 60);
@@ -364,29 +374,73 @@ bool potLive() {
   return potActive;
 }
 
-// night mode: active if selected (Yes) or, in automatic mode, between NIGHT_START and NIGHT_END (needs the RTC module)
+// Mode nuit actif si « Oui » est choisi ou, en mode automatique, entre NIGHT_START et NIGHT_END avec le RTC.
 bool nightActive() {
   if (cfg.night == 2) return true;
   return cfg.night == 1 && rtcPresent && (nowH >= NIGHT_START || nowH < NIGHT_END);
 }
 bool nightPrev = false;
+bool validationFlashActive = false;
+unsigned long validationFlashDuration = 1000UL;
+unsigned long validationFlashStart = 0;
 
-// applies the requested colour, scaled by the chosen brightness (and dimmed at night, except while ringing)
+// Applique la couleur demandée selon la luminosité choisie ; atténue la nuit, sauf pendant la sonnerie.
 void applyColor() {
+  unsigned long elapsed = millis() - validationFlashStart;
+  bool flashOn = validationFlashActive && elapsed < validationFlashDuration;
   uint8_t k = (nightActive() && !ringing) ? 8 : 100;
   nightPrev = nightActive();
-  lcd.setRGB((uint32_t)lastR * cfg.bright * k / 10000,
-             (uint32_t)lastG * cfg.bright * k / 10000,
-             (uint32_t)lastB * cfg.bright * k / 10000);
+  uint8_t r = flashOn ? 0 : lastR;
+  uint8_t g = flashOn ? 200 : lastG;
+  uint8_t b = flashOn ? 45 : lastB;
+  lcd.setRGB((uint32_t)r * cfg.bright * k / 10000,
+             (uint32_t)g * cfg.bright * k / 10000,
+             (uint32_t)b * cfg.bright * k / 10000);
 }
 
 void color(uint8_t r, uint8_t g, uint8_t b) {
+  bool statusColor =
+      (r == 255 && b == 0 && (g == 0 || g == 90 || g == 110)) ||
+      (r == 220 && g == 30 && b == 0) ||
+      (r == 200 && g == 110 && b == 0) ||
+      (r == 255 && g == 110 && b == 0) ||
+      (r == 0 && g == 80 && (b == 255 || b == 220)) ||
+      (r == 0 && g == 160 && b == 40) ||
+      (r == 0 && g == 170 && b == 50) ||
+      (r == 0 && g == 200 && b == 45) ||
+      (r == 0 && g == 140 && b == 170) ||
+      (r == 60 && g == 60 && (b == 60 || b == 120));
+  if (mode == M_TH && r == 0 && g == 160 && b == 40) statusColor = false;
+  if (mode == M_POMO && (r | g | b)) statusColor = true;   // Minuteur : couleurs propres à chaque état, voir drawPomo.
+  if (mode == M_EXAM && (r | g | b)) statusColor = true;
+  if (!statusColor) {
+    switch (mode) {
+    case M_TH: r=0; g=145; b=145; break;
+    case M_POMO: r=205; g=80; b=0; break;
+    case M_CHRONO: r=0; g=105; b=205; break;
+    case M_TALLY: r=0; g=155; b=45; break;
+    case M_DIE: r=125; g=40; b=170; break;
+    case M_CHESS: r=170; g=40; b=125; break;
+    case M_EXAM: r=40; g=90; b=160; break;
+    case M_MUSIC: r=95; g=45; b=180; break;
+    case M_PARAMS: r=40; g=80; b=160; break;
+    case M_HOME: r=0; g=130; b=120; break;
+    case M_ALARM: r=205; g=30; b=0; break;
+    case M_SETCLOCK: r=165; g=95; b=0; break;
+    case M_BRIGHT: r=30; g=100; b=180; break;
+    case M_MENU: r=0; g=105; b=155; break;
+    case M_CLOCK: r=35; g=85; b=155; break;
+    case M_SLEEP: r=255; g=0; b=0; break;
+    default: break;
+    }
+  }
   if (r == lastR && g == lastG && b == lastB) return;
   lastR = r; lastG = g; lastB = b;
   applyColor();
 }
 
-// Write sixteen characters from RAM or flash, padding with spaces.
+// Écrit exactement seize caractères, depuis la RAM ou la flash, puis complète avec des espaces.
+// Cette routine commune évite les tampons intermédiaires et économise la mémoire programme.
 __attribute__((noinline, noclone)) void writeLcdLine(uint8_t row, const char* s, bool flash) {
   lcd.setCursor(0, row);
   for (uint8_t i = 0; i < 16; i++) {
@@ -395,14 +449,24 @@ __attribute__((noinline, noclone)) void writeLcdLine(uint8_t row, const char* s,
     lcd.write(c);
   }
 }
+void startValidationFlash(unsigned long duration = 1000UL) {
+  validationFlashDuration = duration;
+  validationFlashActive = true;
+  validationFlashStart = millis();
+  applyColor();
+}
+
+void updateValidationFlash() {
+  if (!validationFlashActive) return;
+  if (millis() - validationFlashStart >= validationFlashDuration) {
+    validationFlashActive = false;
+    applyColor();
+  }
+}
 void line(uint8_t row, const char* s) { writeLcdLine(row, s, false); }
 void lineP(uint8_t row, PGM_P s) { writeLcdLine(row, s, true); }
 
-__attribute__((noinline)) void drawConfirmHint() {
-  lineP(1, TR("OK=oui  dbl=non", "OK=yes  dbl=no", "OK=si   dbl=no", "OK=ja  dbl=nein"));
-}
-
-// Zero-separated flash strings avoid the padding of fixed-width text tables.
+// Les textes flash séparés par des zéros évitent le remplissage des tableaux à largeur fixe.
 PGM_P packedText(PGM_P text, uint8_t index) {
   while (index--) text += strlen_P(text) + 1;
   return text;
@@ -419,7 +483,7 @@ void musicToneStop() {
 }
 
 void musicToneStartAtVolume(unsigned int freq, uint8_t volume) {
-  static const uint8_t DUTY[3] = { 5, 20, 50 };
+  static const uint8_t DUTY[3] = { 5, 15, 25 };
   unsigned long count = F_CPU / (256UL * freq);
   if (count < 1) count = 1;
   if (count > 256) count = 256;
@@ -447,7 +511,7 @@ void stopAlarmPreview() {
   alarmPreview = false;
 }
 
-// Shared by the real alarm and its preview; no delay blocks the button or dial.
+// Lecture commune au réveil et à sa préécoute, sans attente bloquante.
 void alarmMelodyTick(unsigned long now, uint8_t volume) {
   if ((long)(now - alarmNoteEnd) < 0) return;
   musicToneStop();
@@ -464,8 +528,8 @@ void alarmMelodyTick(unsigned long now, uint8_t volume) {
 }
 
 void updateAlarmPreview() {
-  if (alarmSub != 4 && alarmSub != 5) { stopAlarmPreview(); return; }
-  uint8_t volume = alarmSub == 4 ? 0 : alarmCfg.volume;
+  if (alarmSub != 3 && alarmSub != 4) { stopAlarmPreview(); return; }
+  uint8_t volume = alarmSub == 3 ? 0 : alarmCfg.volume;
   if (!alarmPreview || previewMelody != alarmCfg.melody || previewVolume != volume) {
     musicToneStop();
     alarmPos = 0; alarmNoteEnd = millis();
@@ -475,11 +539,11 @@ void updateAlarmPreview() {
   alarmMelodyTick(millis(), volume);
 }
 
-// Buzzer sound: square wave at the requested frequency ; the volume sets the duty cycle
-// (5 %, 20 % or 50 %: the shorter it is, the quieter the piezo buzzer). Blocking for 'ms'.
+// Buzzer : signal rectangulaire à la fréquence demandée ; le rapport cyclique règle le volume.
+// Rapports de 5 %, 20 % ou 50 % : une impulsion plus courte atténue le buzzer piézoélectrique. Fonction bloquante pendant ms millisecondes.
 void buzz(unsigned int freq, unsigned int ms) {
-  if (alarmPreview) musicToneStop();   // let notification beeps temporarily take over the pin
-  static const uint8_t DUTY[3] = { 5, 20, 50 };
+  if (alarmPreview) musicToneStop();   // Laisse temporairement la broche aux bips de notification.
+  static const uint8_t DUTY[3] = { 5, 15, 25 };
   unsigned long period = 1000000UL / freq;
   unsigned long high = period * DUTY[cfg.volume] / 100;
   unsigned long end = millis() + ms;
@@ -496,8 +560,11 @@ void beep(uint8_t n, unsigned int ms) {
   }
 }
 
-const unsigned long DOUBLE_MS = 300;       // maximum delay between two presses for a double click
+const unsigned long DOUBLE_MS = 300;       // Délai maximal entre deux appuis pour reconnaître un double clic.
 
+// ---------- Bouton et molette ----------
+// readButton() lit le bouton D4 : EV_SHORT (appui court, confirmé après le délai du double clic), EV_DOUBLE, EV_LONG (0,8 s ou plus)
+// et EV_PRESS (musique, immédiat). Il détecte aussi un mouvement de la molette (dialAct).
 uint8_t readButton() {
   static bool down = false, pending = false, second = false, musicPressHandled = false;
   static unsigned long t0 = 0, tRel = 0;
@@ -505,7 +572,13 @@ uint8_t readButton() {
   unsigned long now = millis();
   btnHeld = (p && down) ? now - t0 : 0;
 
-  // an isolated short press is confirmed once the double-click delay has elapsed
+  if (now - lastPotCheck >= 60) {                  // Mouvement de la molette : réveil, arrêt de la sonnerie, veille automatique.
+    lastPotCheck = now;
+    int pv = potRead();
+    if (abs(pv - lastPotSample) > 25) { lastPotSample = pv; dialAct = true; }
+  }
+
+  // Un appui court isolé est confirmé lorsque le délai du double clic est écoulé.
   if (pending && !down && !p && now - tRel > DOUBLE_MS) {
     pending = false;
     if (musicPressHandled) { musicPressHandled = false; if (!ringing) return EV_NONE; }
@@ -527,39 +600,43 @@ uint8_t readButton() {
       return EV_NONE;
     }
     pending = false; second = false; musicPressHandled = false;
-    return d < 2500 ? EV_LONG : EV_VLONG;
+    return EV_LONG;
   }
   return EV_NONE;
 }
 
-// ---------- EEPROM configuration ----------
+// ---------- Configuration EEPROM ----------
 void loadCfg() {
   EEPROM.get(0, cfg);
-  if (cfg.magic != 0xA9 || cfg.aH > 23 || cfg.aM > 59 || cfg.armed > 1 ||
-      cfg.workMin < 1 || cfg.workMin > 240) {
-    cfg.magic = 0xA9; cfg.aH = 7; cfg.aM = 0; cfg.armed = 0; cfg.workMin = 25;
-    cfg.bright = 100; cfg.sound = 1; cfg.volume = 2; cfg.home = 0; cfg.night = 1; cfg.sleep = 0; cfg.tLo2 = 0xFF;       // thresholds are re-checked below
+  if (cfg.magic == 0xAB) {
+    if (cfg.home == 2) cfg.home = 0; else if (cfg.home >= 3 && cfg.home <= 5) cfg.home--;
+    cfg.magic = 0xAC; EEPROM.put(0, cfg);
   }
-  if (cfg.sleep > 7) cfg.sleep = 0;                     // auto sleep: off by default
-  if (cfg.night > 2) cfg.night = 1;                     // night mode: automatic by default
-  if (cfg.home > 5) cfg.home = 0;                       // Favorite: automatic by default
-  if (cfg.volume > 2) cfg.volume = 2;                   // maximum volume by default
-  if (cfg.sound > 1) cfg.sound = 1;                    // startup sound: on by default
-  // thresholds: default values if missing or inconsistent
+  if (cfg.magic != 0xAC || cfg.aH > 23 || cfg.aM > 59 || cfg.armed > 1 ||
+      cfg.workMin < 1 || cfg.workMin > 240) {
+    cfg.magic = 0xAC; cfg.aH = 7; cfg.aM = 0; cfg.armed = 0; cfg.workMin = 25;
+    cfg.bright = 85; cfg.sound = 0; cfg.volume = 1; cfg.home = 0; cfg.night = 1; cfg.sleep = 0; cfg.tLo2 = 0xFF;       // Les seuils sont vérifiés plus bas.
+  }
+  if (cfg.sleep > 7) cfg.sleep = 0;                     // Veille automatique désactivée par défaut.
+  if (cfg.night > 2) cfg.night = 1;                     // Mode nuit automatique par défaut.
+  if (cfg.home > 7) cfg.home = 0;                       // Favori Menu par défaut.
+  if (cfg.volume > 2) cfg.volume = 1;                   // Volume moyen par défaut.
+  if (cfg.sound > 1) cfg.sound = 0;                    // Son de démarrage désactivé par défaut.
+  // Rétablit les seuils par défaut s’ils sont absents ou incohérents.
   if (cfg.tLo2 < T_MIN2 || cfg.tHi2 > T_MAX2 || cfg.tHi2 < cfg.tLo2 + T_GAP2 ||
       cfg.hLo < H_MIN || cfg.hHi > H_MAX || cfg.hHi < cfg.hLo + H_GAP) {
     cfg.tLo2 = T_LO_DEFAULT2; cfg.tHi2 = T_HI_DEFAULT2;
     cfg.hLo = H_LO_DEFAULT;   cfg.hHi = H_HI_DEFAULT;
   }
-  if (cfg.bright < 1 || cfg.bright > 100) cfg.bright = 100;   // old save or invalid value
+  if (cfg.bright < 1 || cfg.bright > 100) cfg.bright = 85;   // Ancienne sauvegarde ou valeur incorrecte.
   EEPROM.get(sizeof(cfg), alarmCfg);
   if (alarmCfg.magic != 0xB1 || alarmCfg.melody >= N_ALARM_TUNES || alarmCfg.volume > 2) {
     alarmCfg.magic = 0xB1; alarmCfg.melody = 0; alarmCfg.volume = cfg.volume;
   }
 }
-void saveCfg() { EEPROM.put(0, cfg); EEPROM.put(sizeof(cfg), alarmCfg); }
+void saveCfg(unsigned long validationDuration = 1000UL) { EEPROM.put(0, cfg); EEPROM.put(sizeof(cfg), alarmCfg); startValidationFlash(validationDuration); }
 
-// ---------- Clock ----------
+// ---------- Horloge ----------
 void readClock() {
   if (rtcPresent) {
     Wire.beginTransmission(RTC_ADDR);
@@ -582,18 +659,19 @@ void setClock(uint8_t h, uint8_t m) {
   if (rtcPresent) {
     Wire.beginTransmission(RTC_ADDR);
     Wire.write((uint8_t)0);
-    Wire.write((uint8_t)0);          // seconds = 0 (also clears the CH bit of the DS1307)
+    Wire.write((uint8_t)0);          // Secondes à zéro ; efface aussi le bit CH du DS1307.
     Wire.write(dec2bcd(m));
-    Wire.write(dec2bcd(h));          // 24 h mode
+    Wire.write(dec2bcd(h));          // Format 24 heures.
     Wire.endTransmission();
   } else {
     swSecs = (unsigned long)h * 3600UL + (unsigned long)m * 60UL;
     swRefMs = millis();
   }
   readClock();
+  startValidationFlash();
 }
 
-// ---------- SHT31 ----------
+// ---------- Capteur SHT31 ----------
 // Small 16-bit xorshift generator: replaces random()/randomSeed() and saves about 250 bytes of flash
 static uint16_t rngS = 1;
 static void seedRng(uint32_t s) { rngS = (uint16_t)(s ^ (s >> 16)); if (!rngS) rngS = 1; }
@@ -612,29 +690,48 @@ uint8_t crc8(const uint8_t *d, uint8_t n) {
   return c;
 }
 
-bool readSht() {
+// Capteur d’humidité : SHT31 ou SHT40, détecté automatiquement (même adresse I2C 0x44, commandes différentes, même CRC).
+uint8_t shtType = 0;   // 0 = pas encore détecté, 1 = SHT31, 2 = SHT40
+bool shtTry(uint8_t type, uint8_t *b) {
   Wire.beginTransmission(SHT_ADDR);
-  Wire.write((uint8_t)0x24); Wire.write((uint8_t)0x00);   // high repeatability measurement
+  if (type == 1) { Wire.write((uint8_t)0x24); Wire.write((uint8_t)0x00); }   // SHT31 : mesure avec répétabilité élevée.
+  else Wire.write((uint8_t)0xFD);                                            // SHT40 : mesure de haute précision.
   if (Wire.endTransmission() != 0) return false;
-  delay(20);
+  delay(type == 1 ? 20 : 10);
   if (Wire.requestFrom(SHT_ADDR, (uint8_t)6) != 6) return false;
-  uint8_t b[6];
   for (uint8_t i = 0; i < 6; i++) b[i] = Wire.read();
+  return true;
+}
+bool readSht() {
+  uint8_t b[6];
   static uint8_t crcBad = 0;
-  if (crc8(b, 2) != b[2] || crc8(b + 3, 2) != b[5]) {   // corrupted read: keep the previous values
-    return ++crcBad < 3 ? shtOk : false;                // report a sensor fault after 3 bad reads in a row
+  bool got = false, crcOk = false;
+  for (uint8_t t = shtType ? shtType : 1; t <= (shtType ? shtType : 2); t++) {   // type connu : un seul essai ; sinon SHT31 puis SHT40
+    if (!shtTry(t, b)) continue;
+    got = true;
+    if (crc8(b, 2) == b[2] && crc8(b + 3, 2) == b[5]) { shtType = t; crcOk = true; break; }
+  }
+  if (!crcOk) {
+    if (got && shtType && ++crcBad < 3) return shtOk;   // lecture corrompue : on garde les valeurs précédentes ; panne signalée après 3 mauvaises lectures de suite
+    shtType = 0;                                        // capteur absent ou changé : nouvelle détection à la prochaine lecture
+    return false;
   }
   crcBad = 0;
   uint16_t rt = ((uint16_t)b[0] << 8) | b[1];
   uint16_t rh = ((uint16_t)b[3] << 8) | b[4];
-  temp10 = (int)((1750L * rt) / 65535L) - 450 + TEMP_OFFSET10;
-  hum10  = (int)((1000L * rh) / 65535L) + HUM_OFFSET10;
+  temp10 = (int)((1750L * rt) / 65535L) - 450 + TEMP_OFFSET10;                    // −45 + 175 × S / 65535, identique pour les deux capteurs
+  hum10  = (shtType == 1 ? (int)((1000L * rh) / 65535L) : (int)((1250L * rh) / 65535L) - 60) + HUM_OFFSET10;   // SHT31 : 100 × S / 65535 ; SHT40 : −6 + 125 × S / 65535
   if (hum10 < 0) hum10 = 0;
   if (hum10 > 1000) hum10 = 1000;
+  if (thSampleCount == 30) { thTempSum -= thTempSamples[thSamplePos]; thHumSum -= thHumSamples[thSamplePos]; }
+  else thSampleCount++;
+  thTempSamples[thSamplePos] = temp10; thHumSamples[thSamplePos] = hum10;
+  thTempSum += temp10; thHumSum += hum10;
+  thSamplePos = (thSamplePos + 1) % 30;
   return true;
 }
 
-// updates a state with a margin ; returns true if it has just become TOO HIGH or TOO LOW
+// Actualise l’état avec une marge ; renvoie vrai lors d’un nouveau dépassement haut ou bas.
 bool updateState(uint8_t &st, int x, int lo, int hi, int marge) {
   uint8_t old = st;
   if (x >= hi)                                st = 1;
@@ -645,8 +742,8 @@ bool updateState(uint8_t &st, int x, int lo, int hi, int marge) {
   return st != old && st != 0;
 }
 void alertBeep(uint8_t st) {
-  if (ringing || standby || nightActive()) return;   // silence while asleep and at night
-  if (st == 1) beep(2, 120); else beep(1, 700);   // high: two short beeps, low: one long beep
+  if (ringing || standby || nightActive()) return;   // Silence pendant la sonnerie, en veille et la nuit.
+  if (st == 1) beep(2, 120); else beep(1, 700);   // Seuil haut : deux bips courts ; seuil bas : un bip long.
 }
 void updateAlerts() {
   if (updateState(tState, temp10, cfg.tLo2 * 5, cfg.tHi2 * 5, T_MARGE10))   alertBeep(tState);
@@ -654,20 +751,20 @@ void updateAlerts() {
 }
 bool anyAlert() { return tState != 0 || hState != 0; }
 
-// ---------- Alarm ----------
+// ---------- Réveil ----------
 void startRing() {
-  if (alarmPreview) { stopAlarmPreview(); alarmSub = 0; }   // real alarm takes priority
+  if (alarmPreview) { stopAlarmPreview(); alarmSub = 0; }   // Le vrai réveil est prioritaire sur la préécoute.
   if (musicState == 1) {
     long remaining = (long)(musicNoteEnd - millis());
     musicRemain = remaining > 0 ? remaining : 0;
-    musicState = 2;                     // resume manually after the alarm
+    musicState = 2;                     // La lecture musicale pourra être reprise manuellement après le réveil.
   }
   musicToneStop();
   alarmPos = 0; alarmNoteEnd = millis();
-  if (standby) { standby = false; lcd.clear(); }   // the alarm turns the screen back on
+  if (standby) { standby = false; lcd.clear(); }   // Le réveil rallume l’écran.
   ringing = true; snoozing = false;
   ringStart = millis();
-  lastR = 255;                          // forces the colour update
+  lastR = 255;                          // Force l’actualisation de la couleur.
 }
 void stopRing() {
   ringing = false; snoozing = false;
@@ -676,7 +773,7 @@ void stopRing() {
 }
 
 void checkAlarm() {
-  if (ringing || !rtcPresent) return;   // no alarm without a reliable clock
+  if (ringing || !rtcPresent) return;   // Pas de réveil sans horloge fiable.
   int minuteOfDay = nowH * 60 + nowM;
   if (!cfg.armed) snoozing = false;
   if (snoozing) {
@@ -708,11 +805,11 @@ void handleRing(uint8_t e, bool draw) {
     char b[17];
     snprintf_P(b, sizeof(b), TR("REVEIL  %02d:%02d", "ALARM   %02d:%02d", "ALARMA  %02d:%02d", "WECKER  %02d:%02d"), nowH, nowM);
     line(0, b);
-    lineP(1, TR_PTR(TXT_OK_snooze_5_min_20, TXT_OK_snooze_5_min_20, PSTR("OK=repetir 5 min"), PSTR("OK=Snooze 5 min")));
+    lineP(1, TR("Toucher = arret", "Touch = stop", "Tocar = parar", "Beruehren=Stopp"));
   }
 }
 
-// ---------- Pomodoro ----------
+// ---------- Minuteur Pomodoro ----------
 unsigned long phaseMs(uint8_t p) {
   if (p == 0) return (unsigned long)cfg.workMin * 60000UL;
   if (p == 1) return (unsigned long)SHORT_BREAK_MIN * 60000UL;
@@ -745,24 +842,32 @@ void pomoTick() {
   pomoLast = millis();
 }
 
-// ---------- Screens ----------
+// ---------- Écrans ----------
 // ---------- Navigation ----------
-// values of the Settings page items (2 volume, 3 sound, 4 auto sleep, 5 night mode, 7 favorite)
-uint8_t parValue(uint8_t i) { return i == 2 ? cfg.volume : i == 3 ? cfg.sound : i == 4 ? cfg.sleep : i == 5 ? cfg.night : cfg.home; }
-void setParValue(uint8_t i, uint8_t v) { if (i == 2) cfg.volume = v; else if (i == 3) cfg.sound = v; else if (i == 4) cfg.sleep = v; else if (i == 5) cfg.night = v; else cfg.home = v; }
+// Lecture et modification des valeurs des paramètres selon leur indice.
+uint8_t parValue(uint8_t i) { return i == 2 ? cfg.volume : i == 3 ? cfg.sound : i == 4 ? cfg.sleep : i == 5 ? cfg.night : i == 7 ? cfg.home : 0; }
+void setParValue(uint8_t i, uint8_t v) { if (i == 2) cfg.volume = v; else if (i == 3) cfg.sound = v; else if (i == 4) cfg.sleep = v; else if (i == 5) cfg.night = v; else if (i == 7) cfg.home = v; }
 
-void chessPause() {                    // leaving the page pauses the clock
+void chessPause() {                    // Quitter la page met la pendule d’échecs en pause.
   if (chessState == 1) { chessBase[chessSide] -= (long)(millis() - chessTurn); chessState = 2; }
 }
 
-// EXAM: setup, immediate paper counting and a separate control menu.
+// EXAMEN : réglage, collecte immédiate et commandes séparées des appuis de comptage.
 enum { EX_DURATION, EX_TARGET, EX_READY, EX_RUNNING, EX_PAUSED, EX_ELAPSED, EX_FINISHED };
 uint8_t examState = EX_DURATION, examMinutes = 35, examTarget = 24, examCopies = 0;
 uint8_t examSub = 0, examAction = 0;
 unsigned long examRemaining = 0, examLast = 0;
-unsigned long examElapsed = 0;   // Active working time, excluding pauses; frozen after the last paper or expiry.
+unsigned long examElapsed = 0;   // Temps de travail effectif, hors pauses ; figé après la dernière copie ou l’expiration.
 
 bool examSession() { return examState >= EX_RUNNING; }
+
+void examColor() {
+  if (!examSession()) color(40, 90, 160);
+  else color(examCopies == examTarget ? 0 : examState == EX_ELAPSED ? 255 : 40,
+             examCopies == examTarget ? 160 : examState == EX_ELAPSED ? 0 : 90, 40);
+}
+
+
 
 
 void enterMode(uint8_t m) {
@@ -770,7 +875,7 @@ void enterMode(uint8_t m) {
   if (mode == M_CHESS && m != M_CHESS) chessPause();
   if (mode == M_MUSIC && m != M_MUSIC) musicToneStop();
   mode = m;
-  clockSub = 0; alarmSub = 0; thSub = 0; parIdx = 1; parSub = 0; tallySub = 0;
+  clockSub = 0; alarmSub = 0; alarmExitPending = false; alarmSavedPending = false; thSub = 0; thSavedPending = false; thView = 0; parIdx = 1; parSub = 0; tallySub = 0;
   if (m == M_DIE) dieRolling = false;
   if (m == M_MUSIC) { musicState = 0; musicPos = 0; musicRemain = 0; }
   potReset();
@@ -785,14 +890,13 @@ void enterMode(uint8_t m) {
   lastDraw = 0;
 }
 
-// Home: opens the page chosen in Settings (0 = automatic)
+// Démarrage/réveil : ouvre la page choisie dans les paramètres ; 0 = menu.
 void goHome() {
   uint8_t h = cfg.home;
-  if (h == 2 && !rtcPresent) h = 1;                  // no clock without an RTC module: Temp & Hum
-  enterMode(h == 0 ? M_HOME : h == 1 ? M_TH : h == 2 ? M_CLOCK : h == 3 ? M_POMO : h == 4 ? M_CHRONO : M_TALLY);
+  enterMode(h == 0 ? M_MENU : h == 1 ? M_TH : h == 2 ? M_POMO : h == 3 ? M_CHRONO : h == 4 ? M_TALLY : h == 5 ? M_DIE : h == 6 ? M_CHESS : M_EXAM);
 }
 
-// back to the Settings page, on setting number i
+// Revient aux paramètres sur l’entrée d’indice i.
 void backToParams(uint8_t i) { enterMode(M_PARAMS); parIdx = i; }
 
 void openMenu() {
@@ -800,8 +904,8 @@ void openMenu() {
   if (mode == M_MUSIC) musicToneStop();
   if (mode == M_CHESS) chessPause();
   prevMode = mode;
-  int t = potRead() / ((POT_MAX + 1) / N_MENU);       // the entry follows the dial position
-  menuIdx = (t > N_MENU - 1) ? N_MENU - 1 : t;
+  menuIdx = 0;                                         // Le menu s’ouvre sur l’entrée de la page quittée (1/10 pour Temp et Hum) ; la molette prend la main dès qu’elle bouge.
+  { uint8_t menuMode(uint8_t); for (uint8_t i = 0; i < N_MENU - 1; i++) if (menuMode(i) == mode) { menuIdx = i; break; } }
   mode = M_MENU;
   clockSub = 0; alarmSub = 0; thSub = 0; parSub = 0; tallySub = 0;
   potReset();
@@ -809,35 +913,29 @@ void openMenu() {
 }
 
 void backToMenu() {
-  if (mode == M_MENU) { enterMode(prevMode); return; }          // in the menu: back to the page
-  if (mode == M_BRIGHT) { cfg.bright = brightBackup; applyColor(); }   // cancels the brightness change
+  if (mode == M_MENU) { enterMode(prevMode); return; }          // Dans le menu : retour à la page précédente.
+  if (mode == M_BRIGHT) { cfg.bright = brightBackup; applyColor(); backToParams(1); return; }   // Annule le changement de luminosité.
   if (mode == M_ALARM && alarmSub != 0) saveCfg();
   if (mode == M_TH && thSub != 0) saveCfg();
-  if (mode == M_PARAMS && parSub != 0) setParValue(parIdx, parBackup);   // cancels the setting being edited
+  if (mode == M_PARAMS && parSub != 0) { setParValue(parIdx, parBackup); parSub = 0; potReset(); lastDraw = 0; return; }
   openMenu();
 }
 
-// menu entry selected by the potentiometer (anti-flicker hysteresis)
+// Entrée du menu : position de la molette, répartie sur les dix entrées.
 uint8_t menuFromPot() {
-  const int zone = (POT_MAX + 1) / N_MENU;
-  int raw = potRead();
-  int target = raw / zone;
-  if (target > N_MENU - 1) target = N_MENU - 1;
-  int cur = menuIdx;
-  if (target > cur && raw >= target * zone + 15) return target;
-  if (target < cur && raw <= cur * zone - 15) return target;
-  return menuIdx;
+  int z = potRead() / ((POT_MAX + 1) / N_MENU);
+  return (uint8_t)(z > N_MENU - 1 ? N_MENU - 1 : z);
 }
 
-// letters of the active background functions, except the one of the displayed page (columns 13 to 15)
+// Lettres des fonctions actives en arrière-plan, sauf celle de la page affichée ; colonnes 13 à 15, numérotées depuis zéro.
 void badges(uint8_t self) {
-  char all[5];                                       // order: ! A C M (M always stays the rightmost)
+  char all[5];                                       // Ordre : ! R C M ; le minuteur reste le plus à droite.
   uint8_t n = 0;
   if (self != M_TH     && anyAlert())                all[n++] = '!';
-  if (self != M_ALARM  && cfg.armed && rtcPresent)   all[n++] = 'A';
+  if (self != M_ALARM  && cfg.armed && rtcPresent)   all[n++] = 'R';
   if (self != M_CHRONO && chronoRun)                 all[n++] = 'C';
-  if (self != M_POMO   && pomoRun)                   all[n++] = ((millis() / 1000UL) % 10 == 9) ? ' ' : 'M';   // M for the timer on every page; absent for 1 s every 10 s
-  char s[4] = { ' ', ' ', ' ', 0 };                  // columns 13 to 15, right-aligned
+  if (self != M_POMO   && pomoRun)                   all[n++] = ((millis() / 1000UL) % 10 == 9) ? ' ' : 'M';   // M pour le minuteur partout ; masqué une seconde toutes les dix secondes.
+  char s[4] = { ' ', ' ', ' ', 0 };                  // Colonnes 13 à 15, alignement à droite.
   uint8_t keep = n > 3 ? 3 : n;
   for (uint8_t i = 0; i < keep; i++) s[3 - keep + i] = all[n - keep + i];
   lcd.setCursor(13, 0);
@@ -846,39 +944,52 @@ void badges(uint8_t self) {
 
 // ---------- Pages ----------
 uint8_t menuMode(uint8_t i);
+void sleepNow();
+// Couleurs du minuteur : prêt = bleu, travail = orange, pause du minuteur = jaune, pause courte = vert, pause longue = cyan.
+void pomoColor() {
+  if (pomoIdle()) color(40, 90, 160);
+  else if (!pomoRun) color(200, 150, 0);
+  else if (pomoPhase == 0) color(255, 70, 0);
+  else if (pomoPhase == 1) color(0, 170, 50);
+  else color(0, 170, 200);
+}
+
 void drawMenu(uint8_t e, bool draw) {
   static const char names[] PROGMEM =
-  "Favorite\0"
   "Examen\0"
-  "Temp & Hum\0"
-  "Timer\0"
-  "Counter\0"
-  "Stopwatch\0"
-  "Alarm\0"
-  "Dice\0"
-  "Chess clock\0"
-  "Melody\0"
-  "Settings\0"
+  "Heure Temp Hum\0"
+  "Minuteur\0"
+  "Compteur\0"
+  "Chrono\0"
+  "Reveil\0"
+  "De\0"
+  "Pendule Echecs\0"
+  "Melodie\0"
+  "Parametres\0"
+  "Mode veille\0"
 ;
   if (potLive()) menuIdx = menuFromPot();
-  if (e == EV_SHORT) { if (menuIdx == 0) goHome(); else enterMode(menuMode(menuIdx)); return; }
+  if (e == EV_SHORT) { if (menuIdx == N_MENU - 1) sleepNow(); else enterMode(menuMode(menuIdx)); return; }
   if (e == EV_LONG || e == EV_VLONG) { enterMode(prevMode); return; }
   if (!draw) return;
   char b[17];
-  color(40, 80, 160);
+  uint8_t displayMode = mode;
+  mode = menuIdx == N_MENU - 1 ? M_SLEEP : menuMode(menuIdx);
+  if (mode == M_POMO) pomoColor(); else if (mode == M_EXAM) examColor(); else color(0, 0, 0);   // Même couleur dans le menu et dans la page.
+  mode = displayMode;
   snprintf_P(b, sizeof(b), PSTR("MENU       %2d/%d"), menuIdx + 1, N_MENU);
   line(0, b);
-  char nm[13]; strcpy_P(nm, packedText(names, menuIdx));
+  char nm[20]; strcpy_P(nm, packedText(names, menuIdx));
   snprintf_P(b, sizeof(b), PSTR("> %s"), nm);
   line(1, b);
 }
 
 uint8_t menuMode(uint8_t i) {
-  static const uint8_t modes[N_MENU] PROGMEM = { M_HOME, M_EXAM, M_TH, M_POMO, M_TALLY, M_CHRONO, M_ALARM, M_DIE, M_CHESS, M_MUSIC, M_PARAMS };
+  static const uint8_t modes[N_MENU] PROGMEM = { M_EXAM, M_TH, M_POMO, M_TALLY, M_CHRONO, M_ALARM, M_DIE, M_CHESS, M_MUSIC, M_PARAMS, M_HOME };
   return pgm_read_byte(&modes[i]);
 }
 
-// text "T23.4C  H 45%"
+// Texte compact : « T23.4C  H 45% ».
 void thText(char* b, size_t n) {
   if (shtOk) {
     int t10 = temp10;
@@ -899,7 +1010,7 @@ void drawClock(bool draw) {
   if (!draw) return;
   if (!rtcPresent) { noRtcScreen(); return; }
   char b[17];
-  color(40, 90, 160);                                 // dimmed by night mode
+  color(40, 90, 160);                                 // Le mode nuit atténue cette couleur.
   snprintf_P(b, sizeof(b), PSTR("    %02d:%02d:%02d"), nowH, nowM, nowS);
   line(0, b);
   badges(M_CLOCK);
@@ -908,40 +1019,57 @@ void drawClock(bool draw) {
 }
 
 void introSound();
-// possible pages for Home: 0 auto, 1 Temp & Hum, 2 clock, 3 timer, 4 stopwatch, 5 counter
+// Favoris possibles : 0 menu, 1 Temp et Hum, 2 minuteur, 3 chronomètre, 4 compteur, 5 dé, 6 pendule d’échecs.
 static const char homeName[] PROGMEM =
-  "Auto\0"
-  "Temp & Hum\0"
-  "Clock\0"
-  "Timer\0"
-  "Stopwatch\0"
-  "Counter\0"
+  "Menu\0"
+  "Heure Temp Hum\0"
+  "Minuteur\0"
+  "Chrono\0"
+  "Compteur\0"
+  "De\0"
+  "Pendule Echecs\0"
+  "Examen\0"
 ;
-// Settings: brightness, volume, startup sound, auto sleep, night mode, set time, favorite.
+// Paramètres : luminosité, volume, son de démarrage, veille automatique, mode nuit, heure et favori.
 
 void drawParams(uint8_t e, bool draw) {
-  if (e == EV_DOUBLE) { backToMenu(); return; }          // double click: back to the menu (cancels an open setting)
+  if (e == EV_DOUBLE) { backToMenu(); return; }          // Double clic : retour au menu et annulation du réglage ouvert.
   if (parSub == 0) {
     if (potLive()) parIdx = 1 + potSelect(N_PAR, parIdx - 1, 30);
     if (e == EV_SHORT) {
       if (parIdx == 1)      { enterMode(M_BRIGHT); return; }
       else if (parIdx == 6) { enterMode(M_SETCLOCK); return; }
+      else if (parIdx == 8) { parSub = 1; potReset(); return; }
       parSub = 1; parBackup = parValue(parIdx); potReset();
     }
   } else {
     if (potLive()) {
       uint8_t cur = parValue(parIdx);
-      uint8_t count = parIdx == 2 ? 3 : parIdx == 3 ? 2 : parIdx == 4 ? 8 : parIdx == 5 ? 3 : 6;
+      uint8_t count = parIdx == 2 ? 3 : parIdx == 3 ? 2 : parIdx == 4 ? 8 : parIdx == 5 ? 3 : parIdx == 7 ? 8 : 0;
       uint8_t v = potSelect(count, cur, parIdx == 2 ? 40 : 30);
-      if (v != cur) { setParValue(parIdx, v); if (parIdx == 2) beep(1, 100); }
+      if (parIdx != 8 && v != cur) { setParValue(parIdx, v); if (parIdx == 2) beep(1, 100); }
     }
     if (e == EV_SHORT) {
-      saveCfg(); parSub = 0; potReset();
+      if (parIdx == 8) {
+        cfg.magic = 0xAC; cfg.aH = 7; cfg.aM = 0; cfg.armed = 0; cfg.workMin = 25;
+        cfg.bright = 85; cfg.sound = 0; cfg.volume = 1; cfg.home = 0; cfg.night = 1; cfg.sleep = 0;
+        cfg.tLo2 = T_LO_DEFAULT2; cfg.tHi2 = T_HI_DEFAULT2; cfg.hLo = H_LO_DEFAULT; cfg.hHi = H_HI_DEFAULT;
+        alarmCfg.magic = 0xB1; alarmCfg.melody = 0; alarmCfg.volume = 1;
+        EEPROM.put(0, cfg); EEPROM.put(sizeof(cfg), alarmCfg);
+        color(0, 200, 45); lineP(0, PSTR("Confirmation Ok")); lineP(1, PSTR(""));
+        delay(1500); parSub = 0; backToParams(1); potReset(); applyColor(); return;
+      } else {
+        saveCfg(); parSub = 0; potReset();
+        if (parIdx == 7) {
+          color(0, 200, 45); lineP(0, PSTR("Confirmation Ok")); lineP(1, PSTR(""));
+          delay(1500); backToParams(1); potReset(); applyColor(); return;
+        }
+      }
       if (parIdx == 3 && cfg.sound) introSound();
     }
   }
   if (!draw) return;
-  char b[17], nm[14], val[14];
+  char b[17], nm[14], val[18];
   color(40, 90, 160);
   strcpy_P(nm, parIdx == 1 ? TR_PTR(TXT_Luminosite_15, TXT_Brightness_7, TXT_Brillo_8, TXT_Helligkeit_13)
              : parIdx == 2 ? TR_PTR(TXT_Volume_31, TXT_Volume_31, PSTR("Volumen"), PSTR("Lautstaerke"))
@@ -949,7 +1077,8 @@ void drawParams(uint8_t e, bool draw) {
              : parIdx == 4 ? TR("Veille auto", "Auto sleep", "Reposo auto", "Auto-Standby")
              : parIdx == 5 ? TR("Mode nuit", "Night mode", "Modo noche", "Nachtmodus")
              : parIdx == 6 ? TR("Regler heure", "Set time", "Ajustar hora", "Uhr stellen")
-                           : TR("Favori", "Favorite", "Favorito", "Favorit"));
+             : parIdx == 7 ? TR("Favori", "Favorite", "Favorito", "Favorit")
+                           : TR("Regl. usine", "Factory", "Fabrica", "Werk"));
   snprintf_P(b, sizeof(b), PSTR("%-12s %d/%d"), nm, parIdx, N_PAR);
   line(0, b);
   if (parIdx == 6) {
@@ -967,6 +1096,10 @@ void drawParams(uint8_t e, bool draw) {
     strcpy_P(val, packedText(homeName, cfg.home));
     snprintf_P(b, sizeof(b), parSub ? TXT_12s_5 : TXT_12s_OK_1, val);
     line(1, b);
+    return;
+  }
+  if (parIdx == 8) {
+    lineP(1, parSub ? PSTR("OK confirmer") : PSTR("OK=ouvrir"));
     return;
   }
   if (parIdx == 4) {
@@ -987,25 +1120,25 @@ void drawParams(uint8_t e, bool draw) {
   if (parIdx == 3) strcpy_P(val, cfg.sound ? TR_PTR(TXT_OUI_22, PSTR("ON"), TXT_SI_25, TXT_JA_14) : TR_PTR(TXT_NON_19, PSTR("OFF"), TXT_NO_18, TXT_NEIN_17));
   else {
     char bar[4] = "   ";
-    for (uint8_t i = 0; i <= cfg.volume; i++) bar[i] = '#';                            // ### = loud
+    for (uint8_t i = 0; i <= cfg.volume; i++) bar[i] = '#';                            // Trois dièses indiquent le volume fort.
     strcpy_P(val, volumeName(cfg.volume));
-    snprintf_P(b, sizeof(b), parSub ? PSTR("> %-6s %-3s OK") : PSTR("%-6s %-3s  OK"), val, bar);
+    snprintf_P(b, sizeof(b), parSub ? PSTR("<> %-6s %-3s OK") : PSTR("%-6s %-3s  OK"), val, bar);
     line(1, b);
     return;
   }
-  snprintf_P(b, sizeof(b), parSub ? PSTR("> %-9s   OK") : PSTR("%-9s OK=chg"), val);
+  snprintf_P(b, sizeof(b), parSub ? PSTR("<> %-9s  OK") : PSTR("%-9s OK=chg"), val);
   line(1, b);
 }
 
 void drawTempHum(uint8_t e, bool draw);
-// Home uses the combined measurements / clock page, without automatic page changes.
+// L’accueil utilise la page combinant mesures et horloge, sans changement automatique de page.
 void drawHome(uint8_t e, bool draw) {
-  if (e == EV_DOUBLE) { enterMode(M_TH); thSub = 1; potReset(); return; }   // set the thresholds
-  if (e != EV_NONE || potLive()) { openMenu(); return; }   // button or dial: open the menu
+  if (e == EV_DOUBLE) { enterMode(M_TH); thSub = 1; potReset(); return; }   // Ouvre le réglage des seuils.
+  if (e != EV_NONE || potLive()) { openMenu(); return; }   // Bouton ou molette : ouvrir le menu.
   drawTempHum(EV_NONE, draw);
 }
 
-// Clock page alone (chosen in Settings > Home): button or dial = menu
+// Page Horloge seule, choisie comme favori : bouton ou molette = menu.
 void drawClockPage(uint8_t e, bool draw) {
   if (e != EV_NONE || potLive()) { openMenu(); return; }
   drawClock(draw);
@@ -1013,7 +1146,7 @@ void drawClockPage(uint8_t e, bool draw) {
 
 uint8_t* thPtr(uint8_t sub) { return sub == 1 ? &cfg.tLo2 : sub == 2 ? &cfg.tHi2 : sub == 3 ? &cfg.hLo : &cfg.hHi; }
 
-// sets threshold number 'sub' with the dial, keeping the minimum gap between low and high
+// Règle le seuil sub à la molette tout en conservant l’écart minimal entre les seuils bas et haut.
 void thEdit(uint8_t sub) {
   bool isT = (sub <= 2);
   uint8_t mn = isT ? T_MIN2 : H_MIN, mx = isT ? T_MAX2 : H_MAX, gap = isT ? T_GAP2 : H_GAP;
@@ -1027,43 +1160,99 @@ void thEdit(uint8_t sub) {
 }
 
 void drawTempHum(uint8_t e, bool draw) {
+  if (thSavedPending) {
+    if ((long)(millis() - thSavedReturnAt) >= 0) {
+      thSavedPending = false;
+      thSub = 0;
+      potReset();
+      e = EV_NONE;
+      draw = true;
+    } else {
+      if (!draw) return;
+      color(150, 100, 0);
+      lineP(0, TR("     Choix      ", "     Choose     ", "     Elegir     ", "    Auswahl     "));
+      lineP(1, PSTR("       OK       "));
+      lcd.setCursor(15, 1); lcd.write((uint8_t)3);
+      return;
+    }
+  }
+  if (e == EV_LONG && thSub != 0) { thSub--; potReset(); e = EV_NONE; }
   if (thSub == 0) {
-    if (e == EV_DOUBLE)    { thSub = 1; potReset(); }     // set the four thresholds
+    if (e == EV_DOUBLE) { thSub = 1; potReset(); }
     else if (e != EV_NONE) { openMenu(); return; }
+  } else if (thSub == 5) {
+    if (e == EV_SHORT) {
+      saveCfg(1500UL);
+      thSavedPending = true;
+      thSavedReturnAt = millis() + 1500UL;
+      potReset();
+    }
   } else if (e == EV_SHORT) {
     if (thSub < 4) { thSub++; potReset(); }
-    else           { thSub = 0; saveCfg(); potReset(); }
+    else { thSub = 5; potReset(); }
   }
-  if (thSub != 0 && potLive()) thEdit(thSub);
-  if (thSub == 0 && potLive()) { openMenu(); return; }   // turning the dial opens the menu
-
+  if (thSub >= 1 && thSub <= 4 && potLive()) thEdit(thSub);
+  if (thSub == 0 && potLive()) thView = potSelect(5, thView, 40);
   if (!draw) return;
   char b[17];
-  if (thSub != 0) {
-    static const char titles[] PROGMEM =
-      "Temp too low\0"
-      "Temp too high\0"
-      "Humid too low\0"
-      "Humid too high\0";
+  const char* pre = (thView == 4 && (millis() / 1500UL) % 2 == 0) ? "AUT " : "<>  ";   // pages 1 à 4 : flèches <> à gauche de l’horloge ; page 5 : « AUT » en alternance avec les flèches (1,5 s) ; l’horloge occupe les colonnes 4 à 11
+  if (rtcPresent) snprintf_P(b, sizeof(b), PSTR("%s%02d:%02d:%02d"), pre, nowH, nowM, nowS);
+  else snprintf_P(b, sizeof(b), PSTR("%s--:--:--"), pre);
+  line(0, b); badges(M_TH);
+  if (thSub == 5) {
     color(150, 100, 0);
-    lineP(0, packedText(titles, thSub - 1));
-    uint8_t v = *thPtr(thSub);
-    if (thSub <= 2) snprintf_P(b, sizeof(b), PSTR("T%s%d.%dC  OK"), thSub == 1 ? "<=" : ">=", v / 2, (v % 2) * 5);
-    else            snprintf_P(b, sizeof(b), PSTR("H%s%d%%  OK"),   thSub == 3 ? "<=" : ">=", v);
-    line(1, b);
+    lineP(0, TR("     Choix      ", "     Choose     ", "     Elegir     ", "    Auswahl     "));
+    lineP(1, PSTR("       OK       "));
+    lcd.setCursor(15, 1); lcd.write((uint8_t)3);
     return;
   }
-  // The clock and background badges remain visible even during a sensor alert.
-  if (rtcPresent) snprintf_P(b, sizeof(b), PSTR("%02d:%02d:%02d"), nowH, nowM, nowS);
-  else strcpy_P(b, PSTR("--:--:--"));
-  line(0, b); badges(M_TH);
+  if (thSub != 0) {
+    color(150, 100, 0);
+    uint8_t v = *thPtr(thSub);
+    if (thSub <= 2) snprintf_P(b, sizeof(b), PSTR("<> %s %d.%d%c"), thSub == 1 ? "Tmin" : "Tmax", v / 2, (v % 2) * 5, 0xDF);
+    else snprintf_P(b, sizeof(b), PSTR("<> %s %d%%"), thSub == 3 ? "Hmin" : "Hmax", v);
+    line(1, b);
+    lcd.setCursor(15, 1); lcd.write((uint8_t)3);
+    return;
+  }
   if (!shtOk) {
     color(60, 60, 60);
     lineP(1, TR_PTR(TXT_Capteur_absent_9, TXT_Sensor_missing_29, TXT_Sensor_ausente_27, TXT_Sensor_fehlt_28));
     return;
   }
 
-  // Second row: measurements / full alert, with measurements before each alert.
+  // Deuxième ligne : mesures et message complet alternent ; les mesures précèdent chaque alerte.
+  uint8_t view = thView;                                           // 0 mesures, 1 minimum, 2 maximum, 3 moyenne, 4 AUT (défile les quatre pages toutes les 3 s)
+  if (view == 4) view = (millis() / 3000UL) % 4;
+  if (view == 1 || view == 2) {
+    int16_t tLo = thTempSamples[0], tHi = thTempSamples[0];
+    int16_t hLo = thHumSamples[0], hHi = thHumSamples[0];
+    for (uint8_t i = 1; i < thSampleCount; i++) {
+      if (thTempSamples[i] < tLo) tLo = thTempSamples[i];
+      if (thTempSamples[i] > tHi) tHi = thTempSamples[i];
+      if (thHumSamples[i] < hLo) hLo = thHumSamples[i];
+      if (thHumSamples[i] > hHi) hHi = thHumSamples[i];
+    }
+    bool showMin = (view == 1);
+    int16_t tExtreme = showMin ? tLo : tHi;
+    int16_t hExtreme = showMin ? hLo : hHi;
+    int textLen = snprintf_P(b, sizeof(b), PSTR("%s T%s%d.%d%c H%d%%"), showMin ? "MIN" : "MAX",
+                             tExtreme < 0 ? "-" : "", abs(tExtreme)/10, abs(tExtreme)%10, 0xDF, (hExtreme + 5)/10);
+    if (textLen > 16)
+      snprintf_P(b, sizeof(b), PSTR("%sT%s%d.%d%cH%d%%"), showMin ? "MIN" : "MAX",
+                 tExtreme < 0 ? "-" : "", abs(tExtreme)/10, abs(tExtreme)%10, 0xDF, (hExtreme + 5)/10);
+    line(1, b);
+    return;
+  }
+  if (view == 3) {
+    int16_t tAvg = thSampleCount ? thTempSum / thSampleCount : temp10;
+    int16_t hAvg = thSampleCount ? thHumSum / thSampleCount : hum10;
+    int textLen = snprintf_P(b, sizeof(b), TR("MOY T%s%d.%d%c H%d%%", "AVG T%s%d.%d%c H%d%%", "PROM T%s%d.%d%c H%d%%", "DUR T%s%d.%d%c H%d%%"), tAvg < 0 ? "-" : "", abs(tAvg)/10, abs(tAvg)%10, 0xDF, (hAvg + 5)/10);
+    if (textLen > 16)
+      snprintf_P(b, sizeof(b), TR("MOYT%s%d.%d%cH%d%%", "AVGT%s%d.%d%cH%d%%", "PROMT%s%d.%d%cH%d%%", "DURT%s%d.%d%cH%d%%"), tAvg < 0 ? "-" : "", abs(tAvg)/10, abs(tAvg)%10, 0xDF, (hAvg + 5)/10);
+    line(1, b);
+    return;
+  }
   PGM_P msg[2]; uint8_t states[2], n = 0;
   if (tState) {
     states[n] = tState;
@@ -1079,7 +1268,7 @@ void drawTempHum(uint8_t e, bool draw) {
   else if (state == 2) color(0, 80, 255);
   else color(0, 160, 40);
   if (slot & 1) { lineP(1, msg[slot / 2]); return; }
-  // Degrees use LCD character 0xDF; measurements occupy at most 13 columns.
+  // Le symbole degré correspond au caractère LCD 0xDF ; les mesures occupent au plus treize colonnes.
   snprintf_P(b, sizeof(b), PSTR("T%s%d.%d%c H%d%%"), temp10 < 0 ? "-" : "",
              abs(temp10) / 10, abs(temp10) % 10, 0xDF, (hum10 + 5) / 10);
   line(1, b);
@@ -1087,6 +1276,7 @@ void drawTempHum(uint8_t e, bool draw) {
 }
 
 void drawSetClock(uint8_t e, bool draw) {
+  if (e == EV_LONG) { if (clockSub > 1) { clockSub--; potReset(); } else { backToParams(6); return; } e = EV_NONE; }
   if (!rtcPresent) {
     if (e != EV_NONE || potLive()) backToParams(6);
     else if (draw) noRtcScreen();
@@ -1107,66 +1297,100 @@ void drawSetClock(uint8_t e, bool draw) {
   line(1, b);
 }
 
+bool serviceAlarmExit(bool draw) {
+  if (!alarmExitPending) return false;
+  if ((long)(millis() - alarmExitAt) >= 0) {
+    alarmExitPending = false;
+  alarmSavedPending = false;
+    openMenu();
+    return true;
+  }
+  if (draw) {
+    color(150, 70, 0);
+    lineP(0, TR("Desactivation", "Disabling", "Desactivando", "Deaktivieren"));
+    lineP(1, TR("OK", "OK", "OK", "OK"));
+  }
+  return true;
+}
 void drawAlarm(uint8_t e, bool draw) {
+  if (e == EV_LONG && alarmSub != 0 && !alarmSavedPending) { alarmSub--; potReset(); e = EV_NONE; }
   if (!rtcPresent) {
     if (e != EV_NONE || potLive()) { openMenu(); return; }
     if (draw) { color(60, 60, 120); lineP(0, TR("Alarme : il faut", "Alarm: needs the", "Alarma: requiere", "Wecker: braucht")); lineP(1, TR("le module RTC", "RTC module", "modulo RTC", "RTC-Modul")); }
     return;
   }
+  if (alarmSavedPending) {
+    if ((long)(millis() - alarmSavedReturnAt) >= 0) {
+      alarmSavedPending = false;
+      alarmSub = 0;
+      openMenu();
+      return;
+    } else {
+      if (!draw) return;
+      color(150, 70, 0);
+      lineP(0, TR("     Alarme     ", "     Alarm      ", "     Alarma     ", "     Wecker     "));
+      lineP(1, PSTR("       OK       "));
+      return;
+    }
+  }
+  if (serviceAlarmExit(draw)) return;
   if (alarmSub == 0) {
-    if (e == EV_DOUBLE)     { cfg.armed = !cfg.armed; saveCfg(); }   // arm / disarm
-    else if (e == EV_SHORT) { alarmSub = 1; potReset(); }
-    else if (potLive())     { openMenu(); return; }
+    if (e == EV_SHORT)             { cfg.armed = 1; potReset(); saveCfg(); alarmSub = 1; }   // Appui court : activer puis entrer dans les réglages.
+    else if (e == EV_DOUBLE)       { cfg.armed = 0; potReset(); saveCfg(); alarmExitPending = true; alarmExitAt = millis() + 1500UL; } // Double clic : désactiver puis quitter après confirmation.
+    else if (potLive())          { openMenu(); return; }
   } else if (e == EV_SHORT) {
     stopAlarmPreview();
-    alarmSub++;
     potReset();
-    if (alarmSub == 6) { alarmSub = 0; saveCfg(); }
+    if (alarmSub == 4) { alarmSub = 5; saveCfg(1500UL); alarmSavedPending = true; alarmSavedReturnAt = millis() + 1500UL; }
+    else if (alarmSub == 5) alarmSub = 0;
+    else alarmSub++;
   }
 
+  if (serviceAlarmExit(draw)) return;
   if (alarmSub == 1 && potLive()) cfg.aH = potSelect(24, cfg.aH, 4);
   if (alarmSub == 2 && potLive()) cfg.aM = potSelect(60, cfg.aM, 4);
-  if (alarmSub == 3 && potLive()) cfg.armed = potSelect(2, cfg.armed, 20);
-  if (alarmSub == 4 && potLive()) alarmCfg.melody = potSelect(N_ALARM_TUNES, alarmCfg.melody, 15);
-  if (alarmSub == 5 && potLive()) alarmCfg.volume = potSelect(3, alarmCfg.volume, 20);
+  if (alarmSub == 3 && potLive()) alarmCfg.melody = potSelect(N_ALARM_TUNES, alarmCfg.melody, 15);
+  if (alarmSub == 4 && potLive()) alarmCfg.volume = potSelect(3, alarmCfg.volume, 20);
   updateAlarmPreview();
 
   if (!draw) return;
   char b[17];
   if (alarmSub == 0) {
     color(150, 70, 0);
-    snprintf_P(b, sizeof(b), TR("Alarme  %02d:%02d", "Alarm   %02d:%02d", "Alarma  %02d:%02d", "Wecker  %02d:%02d"), cfg.aH, cfg.aM);
-    line(0, b);
-    badges(M_ALARM);
-    if (snoozing) lineP(1, TR("Snooze en cours", "Snoozing", "Repitiendo", "Schlummern"));
-    else          lineP(1, cfg.armed ? TR("ON   OK=regler", "ON   OK=set", "ON   OK=ajustar", "AN   OK=stellen") : TR("OFF  OK=regler", "OFF  OK=set", "OFF  OK=ajustar", "AUS  OK=stellen"));
+    lineP(0, TR("CLIC: Activer", "CLICK: Enable", "CLIC: Activar", "KLICK: Aktivier."));
+    lineP(1, TR("2 CLICS: Desact.", "2 CLICKS: Off", "2 CLICS: Desact", "2 KLICKS: Aus"));
+    return;
+  }
+  if (alarmSub == 5) {
+    color(150, 70, 0);
+    lineP(0, TR("     Alarme     ", "     Alarm      ", "     Alarma     ", "     Wecker     "));
+    lineP(1, PSTR("       OK       "));
     return;
   }
   color(150, 100, 0);
   switch (alarmSub) {
     case 1:  lineP(0, TR("Alarme : heures", "Alarm: hours", "Alarma: horas", "Wecker: Stunden"));  snprintf_P(b, sizeof(b), PSTR("%02d h"), cfg.aH); break;
     case 2:  lineP(0, TR("Alarme : minutes", "Alarm: minutes", "Alarma: minutos", "Wecker: Minuten")); snprintf_P(b, sizeof(b), PSTR("%02d min"), cfg.aM); break;
-    case 4:  lineP(0, TR("Alarme: melodie", "Alarm: melody", "Alarma: melodia", "Wecker: Melodie")); strcpy_P(b, alarmTuneName()); break;
-    case 5:  lineP(0, TR("Alarme: volume", "Alarm: volume", "Alarma: volumen", "Wecker: Lautst."));
+    case 3:  lineP(0, TR("Alarme: melodie", "Alarm: melody", "Alarma: melodia", "Wecker: Melodie")); strcpy_P(b, alarmTuneName()); break;
+    default: lineP(0, TR("Alarme: volume", "Alarm: volume", "Alarma: volumen", "Wecker: Lautst."));
              strcpy_P(b, volumeName(alarmCfg.volume)); break;
-    default: lineP(0, TR("Alarme armee ?", "Alarm armed?", "Alarma activa?", "Wecker aktiv?")); strcpy_P(b, cfg.armed ? TR_PTR(TXT_OUI_22, PSTR("YES"), TXT_SI_25, TXT_JA_14) : TR_PTR(TXT_NON_19, TXT_NO_18, TXT_NO_18, TXT_NEIN_17)); break;
   }
   line(1, b);
 }
 
 void drawPomo(uint8_t e, bool draw) {
-  if (e == EV_DOUBLE && pomoIdle()) { openMenu(); return; }   // already at zero: double click = back to the menu
-  if (e == EV_DOUBLE) { pomoReset(); potReset(); }   // reset ; otherwise the timer keeps running in the background
+  if (e == EV_DOUBLE && pomoIdle()) { openMenu(); return; }   // Si déjà à zéro : double clic pour revenir au menu.
+  if (e == EV_DOUBLE) { pomoReset(); potReset(); }   // Remise à zéro ; sinon le minuteur continue en arrière-plan.
   else if (e == EV_SHORT) {
-    if (pomoIdle()) saveCfg();                       // remembers the chosen duration
+    if (pomoIdle()) saveCfg();                       // Mémorise la durée choisie.
     pomoRun = !pomoRun;
     pomoLast = millis();
-    potReset();                                      // the dial only counts from now on
+    potReset();                                      // La molette est prise en compte à partir de cet instant.
   }
 
-  // Once started, the dial opens the menu without stopping the countdown.
+  // Après le démarrage, la molette ouvre le menu sans arrêter le décompte.
   if (!pomoIdle() && potLive()) { openMenu(); return; }
-  if (pomoIdle() && potLive()) {                     // when stopped: the potentiometer sets the duration
+  if (pomoIdle() && potLive()) {                     // À l’arrêt, le potentiomètre règle la durée.
     uint8_t cur = workIndex(cfg.workMin);
     uint8_t idx = potSelect(N_WORK, cur, 3);
     if (idx != cur) { cfg.workMin = workValue(idx); pomoRemMs = phaseMs(0); }
@@ -1175,9 +1399,10 @@ void drawPomo(uint8_t e, bool draw) {
   if (!draw) return;
   char b[17];
   unsigned long rs = (pomoRemMs + 999UL) / 1000UL;
-  if (pomoPhase == 0)      { color(220, 30, 0);  snprintf_P(b, sizeof(b), TR_PTR(PSTR("MINUTEUR #%d"), TXT_TIMER_d_30, PSTR("TEMPORIZ. #%d"), TXT_TIMER_d_30), pomoCount + 1); }
-  else if (pomoPhase == 1) { color(0, 170, 50);  snprintf_P(b, sizeof(b), TR("PAUSE COURTE", "SHORT BREAK", "PAUSA CORTA", "KURZE PAUSE")); }
-  else                     { color(0, 80, 220);  snprintf_P(b, sizeof(b), TR("PAUSE LONGUE", "LONG BREAK", "PAUSA LARGA", "LANGE PAUSE")); }
+  if (pomoPhase == 0)      { strcpy_P(b, TR_PTR(PSTR("MINUTEUR"), PSTR("TIMER"), PSTR("TEMPORIZ."), PSTR("TIMER"))); }
+  else if (pomoPhase == 1) { snprintf_P(b, sizeof(b), TR("PAUSE COURTE", "SHORT BREAK", "PAUSA CORTA", "KURZE PAUSE")); }
+  else                     { snprintf_P(b, sizeof(b), TR("PAUSE LONGUE", "LONG BREAK", "PAUSA LARGA", "LANGE PAUSE")); }
+  pomoColor();
   line(0, b);
   badges(M_POMO);
   char t[12], d[12];
@@ -1193,15 +1418,15 @@ void drawPomo(uint8_t e, bool draw) {
 }
 
 void drawChrono(uint8_t e, bool draw) {
-  bool idle = !chronoRun && chronoMs() == 0;       // stopwatch at zero, waiting for a short press
-  if (e == EV_DOUBLE && idle) { openMenu(); return; }   // already at zero: double click = back to the menu
-  if (e == EV_DOUBLE) { chronoRun = false; chronoAccum = 0; potReset(); }   // reset ; otherwise the stopwatch keeps running in the background
+  bool idle = !chronoRun && chronoMs() == 0;       // Chronomètre à zéro, en attente d’un appui court.
+  if (e == EV_DOUBLE && idle) { openMenu(); return; }   // Si déjà à zéro : double clic pour revenir au menu.
+  if (e == EV_DOUBLE) { chronoRun = false; chronoAccum = 0; potReset(); }   // Remise à zéro ; sinon le chronomètre continue en arrière-plan.
   else if (e == EV_SHORT) {
     if (chronoRun) { chronoAccum = millis() - chronoStart; chronoRun = false; }
     else           { chronoStart = millis() - chronoAccum; chronoRun = true; }
-    potReset();                                      // the dial only counts from now on
+    potReset();                                      // La molette est prise en compte à partir de cet instant.
   }
-  if (potLive()) { openMenu(); return; }            // turning the dial opens the menu (the stopwatch keeps running in the background)
+  if (potLive()) { openMenu(); return; }       // La molette ouvre le menu ; le chronomètre continue en arrière-plan.
 
   if (!draw) return;
   color(110, 40, 170);
@@ -1219,19 +1444,22 @@ void drawChrono(uint8_t e, bool draw) {
 }
 
 void drawTally(uint8_t e, bool draw, bool tap) {
+  if (e == EV_LONG && tallySub != 0) { tallySub = 0; potReset(); e = EV_NONE; }
   if (tallySub == 0) {
-    if (tap && tallyCount < 9999) { tallyCount++; lastDraw = 0; }   // each press counts immediately
-    if (potLive()) { tallySub = 1; tallyT0 = millis(); }            // dial: reset request
+    if (tap && tallyCount < 9999) { tallyCount++; lastDraw = 0; }   // Chaque appui est compté immédiatement.
+    if (potLive()) { tallySub = 1; tallyT0 = millis(); }            // Molette : -1 ou remise à zéro.
   } else {
-    if (e == EV_DOUBLE || millis() - tallyT0 > 5000) { tallySub = 0; potReset(); }
-    else if (e == EV_SHORT && millis() - tallyT0 > 600) { tallyCount = 0; tallySub = 0; potReset(); }
+    bool wait = millis() - tallyT0 <= 600;
+    if (!wait && e == EV_DOUBLE)     { tallyCount = 0; tallySub = 0; potReset(); }
+    else if (!wait && e == EV_SHORT) { if (tallyCount) tallyCount--; tallySub = 0; potReset(); }
+    else if (millis() - tallyT0 > 5000) { tallySub = 0; potReset(); }
   }
   if (!draw) return;
   char b[17];
   if (tallySub != 0) {
     color(150, 100, 0);
-    lineP(0, TR("Remise a zero ?", "Reset counter?", "Poner a cero?", "Zuruecksetzen?"));
-    drawConfirmHint();
+    lineP(0, TR("-1 ou RAZ ?", "-1 or reset?", "-1 o a cero?", "-1 oder Reset?"));
+    lineP(1, TR("OK=-1  dbl=RAZ", "OK=-1  dbl=RESET", "OK=-1 dbl=cero", "OK=-1 dbl=Reset"));
     return;
   }
   color(0, 130, 130);
@@ -1239,61 +1467,55 @@ void drawTally(uint8_t e, bool draw, bool tap) {
   badges(M_TALLY);
   snprintf_P(b, sizeof(b), PSTR("%16u"), tallyCount);
   line(1, b);
-  // Active time at the bottom left; the counter stays in the four rightmost columns.
-  // When both run, alternate timer and stopwatch every two seconds.
-  if (pomoRun || chronoRun) {
-    bool timer = pomoRun && (!chronoRun || (millis() / 2000UL) % 2 == 0);
-    unsigned long secs = timer ? (pomoRemMs + 999UL) / 1000UL : chronoMs() / 1000UL;
-    char t[12];
-    if (secs >= 3600UL)
-      snprintf_P(t, sizeof(t), PSTR("%c%lu:%02lu:%02lu"), timer ? 'M' : 'C', secs / 3600UL, (secs / 60UL) % 60, secs % 60);
-    else
-      snprintf_P(t, sizeof(t), PSTR("%c%02lu:%02lu"), timer ? 'M' : 'C', secs / 60UL, secs % 60);
-    lcd.setCursor(0, 1);
-    lcd.print(t);
-  }
 }
 
 void drawDie(uint8_t e, bool draw, bool tap) {
-  if (e == EV_DOUBLE) { openMenu(); return; }          // double click: back to the menu
+  if (e == EV_DOUBLE) { openMenu(); return; }          // Double clic : revenir au menu.
   uint8_t faces = pgm_read_byte(&DIE_FACES[dieIdx]);
   if (dieRolling) {
-    if ((long)(millis() - dieEnd) >= 0) {              // end of the roll: final result
+    if ((long)(millis() - dieEnd) >= 0) {              // Fin du lancer : résultat définitif.
       seedRng(micros() + analogRead(PIN_POT));
-      dieVal = rollDie(faces);
+      dieVal = (dieShow >= 1 && dieShow <= faces) ? dieShow : rollDie(faces);   // Le résultat est le dernier nombre affiché : il ne change plus à l’arrêt.
       dieRolling = false;
       beep(1, 60);
       lastDraw = 0;
     }
   } else {
-    if (potLive()) {                                   // the dial chooses the number of sides
+    if (potLive()) {                                   // La molette choisit le nombre de faces.
       uint8_t n = potSelect(N_DIE, dieIdx, 20);
       if (n != dieIdx) { dieIdx = n; dieVal = 0; faces = pgm_read_byte(&DIE_FACES[dieIdx]); }
     }
-    if (tap) {                                         // each press rolls the die immediately
+    if (tap) {                                         // Chaque appui lance immédiatement le dé.
       seedRng(micros() + analogRead(PIN_POT));
-      dieRolling = true; dieEnd = millis() + 900; dieVal = 0;
+      dieRolling = true; dieEnd = millis() + 900; dieVal = 0; dieShow = 0;
     }
   }
   if (!draw) return;
-  char b[17], h[12];
+  char b[17];
   color(170, 60, 130);
-  lineP(0, TR("DE", "DICE", "DADO", "WUERFEL"));
+  // Ligne 1 : titre et rappel des gestes (colonnes 13 à 15 réservées aux indicateurs) ; ligne 2 : D + faces à gauche, texte ou nombre aligné à droite.
+  if (dieRolling)       lineP(0, TR("DE  lance...", "DICE rolling", "DADO tirando", "WUERFEL rollt"));
+  else if (dieVal != 0) lineP(0, TR("DE OK=relance", "DICE OK=roll", "DADO OK=tirar", "WUERFEL OK"));
+  else                  lineP(0, TR("DE  <> faces", "DICE <> sides", "DADO <> caras", "WUERFEL <>"));
   badges(M_DIE);
+  char r[12];                                          // partie droite de la ligne 2, alignée sur la colonne 15
   if (dieRolling) {
     dieShow = rollDie(faces);
-    buzz(1800, 5);                                     // small tick during the roll
-    snprintf_P(b, sizeof(b), TXT_D_3u_3u_10, faces, dieShow);
+    buzz(1800, 5);                                     // Petit cliquetis pendant le lancer.
+    snprintf_P(r, sizeof(r), PSTR("%3u"), dieShow);
   } else if (dieVal != 0) {
-    snprintf_P(b, sizeof(b), TXT_D_3u_3u_10, faces, dieVal);
+    snprintf_P(r, sizeof(r), PSTR("[%3u]"), dieVal);
   } else {
-    strcpy_P(h, TR("OK=lancer", "OK=roll", "OK=tirar", "OK=wuerfeln"));
-    snprintf_P(b, sizeof(b), PSTR("D%-3u  %s"), faces, h);
+    strcpy_P(r, TR("OK=lancer", "OK=roll", "OK=tirar", "OK=wuerfeln"));
   }
+  uint8_t ln = snprintf_P(b, sizeof(b), PSTR("D%-3u"), faces);
+  uint8_t rl = strlen(r);
+  while (ln < 16 - rl) b[ln++] = ' ';
+  strcpy(b + ln, r);
   line(1, b);
 }
 
-// Music: dial = choose a track, short press = play / pause / resume, double click = back to the menu.
+// Musique : molette = choisir un morceau ; appui court = lire, mettre en pause ou reprendre ; double clic = menu.
 void drawMusic(uint8_t e, bool draw) {
   if (e == EV_DOUBLE) { openMenu(); return; }
   if (e == EV_PRESS || e == EV_SHORT) {
@@ -1341,35 +1563,35 @@ void drawMusic(uint8_t e, bool draw) {
   badges(M_MUSIC);
   if (musicState == 1)      lineP(1, TR("Lecture OK=pause", "Playing OK=pause", "Suena OK=pausa", "Spielt OK=Pause"));
   else if (musicState == 2) lineP(1, TR("Pause OK=lire", "Paused OK=play", "Pausa OK=tocar", "Pause OK=Start"));
-  else                   lineP(1, TR("Tourner=choix OK", "Dial=choose OK", "Dial=gira OK", "Dreh=wahl OK"));
+  else                   lineP(1, TR("Molette=choix OK", "Dial=choose OK", "Dial=gira OK", "Dreh=wahl OK"));
 }
 
-// Chess clock: a short press hands over to the other player, the dial chooses the time control (when stopped)
+// Pendule d’échecs : un appui court passe au joueur suivant ; la molette choisit la cadence à l’arrêt.
 void drawChess(uint8_t e, bool draw) {
   if (chessState == 0) {
     if (e == EV_DOUBLE) { openMenu(); return; }
     if (potLive()) chessIdx = potSelect(N_CHESS, chessIdx, 20);
-    if (e == EV_SHORT) {                               // start: player 1 begins
+    if (e == EV_SHORT) {                               // Démarrage : le premier joueur commence.
       long t = (long)pgm_read_byte(&CHESS_MIN[chessIdx]) * 60000L;
       chessBase[0] = t; chessBase[1] = t;
       chessSide = 0; chessState = 1; chessTurn = millis();
       beep(1, 60); lastR = 255;
     }
   } else if (chessState == 1) {
-    if (e == EV_SHORT) {                               // player change, at the instant of the press
+    if (e == EV_SHORT) {                               // Changement de joueur à l’instant de l’appui.
       unsigned long at = tapMs;
       if ((long)(at - chessTurn) < 0) at = chessTurn;
       chessBase[chessSide] += (long)pgm_read_byte(&CHESS_INC[chessIdx]) * 1000L - (long)(at - chessTurn);
       chessSide ^= 1; chessTurn = at;
       buzz(2000, 10);
     } else if (e == EV_DOUBLE) chessPause();
-    if (chessState == 1 && chessLeft(chessSide) == 0) {   // flag fallen
+    if (chessState == 1 && chessLeft(chessSide) == 0) {   // Le temps du joueur est écoulé.
       chessBase[chessSide] = 0; chessState = 3;
       beep(3, 200); lastR = 255;
     }
   } else if (chessState == 2) {
-    if (e == EV_SHORT)       { chessState = 1; chessTurn = millis(); lastR = 255; }   // resume
-    else if (e == EV_DOUBLE) { chessState = 0; lastR = 255; }                          // reset
+    if (e == EV_SHORT)       { chessState = 1; chessTurn = millis(); lastR = 255; }   // Reprise de la partie.
+    else if (e == EV_DOUBLE) { chessState = 0; lastR = 255; }                          // Remise à zéro.
   } else {
     if (e == EV_SHORT || e == EV_DOUBLE) { chessState = 0; lastR = 255; }
   }
@@ -1404,7 +1626,7 @@ void drawBright(uint8_t e, bool draw) {
   if (potLive()) {
     brightIdx = potSelect(8, brightIdx, 10);
     cfg.bright = BRIGHT_LEVELS[brightIdx];
-    applyColor();                                    // immediate preview
+    applyColor();                                    // Prévisualisation immédiate.
   }
 
   if (!draw) return;
@@ -1413,20 +1635,20 @@ void drawBright(uint8_t e, bool draw) {
   bar[8] = 0;
   color(40, 90, 160);
   lineP(0, TR_PTR(TXT_Luminosite_15, TXT_Brightness_7, TXT_Brillo_8, TXT_Helligkeit_13));
-  snprintf_P(b, sizeof(b), PSTR("%3d%% %s"), cfg.bright, bar);
+  snprintf_P(b, sizeof(b), PSTR("<> %3d%% %s"), cfg.bright, bar);
   line(1, b);
 }
 
-// ---------- Startup intro ----------
-const char BRAND1[] PROGMEM = "PR BELAMINE";     // 2nd intro screen, line 1
-const char BRAND2[] PROGMEM = "MAKERLAB";        // 2nd intro screen, line 2
+// ---------- Séquence de démarrage ----------
+const char BRAND1[] PROGMEM = "PR BELAMINE";     // Deuxième écran de démarrage, première ligne.
+const char BRAND2[] PROGMEM = "MAKERLAB";        // Deuxième écran de démarrage, deuxième ligne.
 
 void centered(uint8_t row, const char* t) {
   char b[17];
   uint8_t len = strlen(t);
   if (len > 16) len = 16;
   uint8_t pad = (16 - len) / 2;
-  memset(b, ' ', 16);                            // manual centering: "%*s" does not exist on the UNO
+  memset(b, ' ', 16);                            // Centrage manuel : le format « %*s » n’est pas disponible sur l’UNO.
   memcpy(b + pad, t, len);
   b[16] = 0;
   line(row, b);
@@ -1436,33 +1658,36 @@ void centeredP(uint8_t row, PGM_P s) {
   strncpy_P(t, s, 16); t[16] = 0;
   centered(row, t);
 }
-void introSound() {                              // short three-note melody
+void introSound() {                              // Mélodie de quatre notes.
   if (!cfg.sound || nightActive()) return;
   buzz(1500, 90); delay(40);
   buzz(2000, 90); delay(40);
-  buzz(2600, 160);
+  buzz(2600, 90); delay(40);
+  buzz(3100, 340);                               // Quatrième note, plus longue.
   digitalWrite(PIN_BUZZER, LOW);
 }
 void intro() {
   lastR = 40; lastG = 90; lastB = 160;
-  for (uint8_t i = 0; i <= 100; i += 5) {        // the backlight fades in slowly
+  for (uint8_t i = 0; i <= 100; i += 5) {        // Allumage progressif du rétroéclairage.
     lcd.setRGB(40 * i / 100 * cfg.bright / 100, 90 * i / 100 * cfg.bright / 100, 160 * i / 100 * cfg.bright / 100);
     if (i == 0) { centeredP(0, TXT_DESK_WATCH_11); centeredP(1, TXT_EMPTY_0); }
     delay(25);
   }
-  centeredP(0, TXT_DESK_WATCH_11); centeredP(1, TXT_EMPTY_0);   // rewritten: in case the screen was not ready
+  centeredP(0, TXT_DESK_WATCH_11); centeredP(1, TXT_EMPTY_0);   // Réécrit le titre au cas où l’écran n’était pas encore prêt.
   introSound();
   delay(1000);
-  centeredP(0, BRAND1); centeredP(1, BRAND2);      // second screen: the brand
+  centeredP(0, BRAND1); centeredP(1, BRAND2);      // Deuxième écran : la marque.
   delay(1500);
   centeredP(0, PSTR("TEACHER EDITION"));
   lcd.setCursor(0, 1);
   for (uint8_t i = 0; i < 16; ++i) { lcd.write((uint8_t)255); delay(60); }
 }
 
-// ---------- Sleep (very long press) ----------
+// ---------- Veille par appui très long ----------
 void sleepNow() {
   stopAlarmPreview();
+  mode = M_SLEEP;
+  color(255, 0, 0);
   centeredP(0, TR("A bientot", "Goodbye", "Hasta pronto", "Tschuess"));
   centeredP(1, TXT_EMPTY_0);
   delay(700);
@@ -1481,7 +1706,7 @@ void wakeUp() {
   if (cfg.sound) introSound();
 }
 
-// ---------- Program ----------
+// ---------- Programme principal ----------
 void examTick() {
   unsigned long now = millis();
   if (examState == EX_RUNNING) {
@@ -1509,7 +1734,7 @@ void drawExam(uint8_t e, bool draw, bool tap) {
     if (draw) {
       color(150, 100, 0);
       lineP(0, TR("Terminer examen?", "End exam?", "Terminar examen?", "Pruefung enden?"));
-      drawConfirmHint();
+      lineP(1, TR("OK=oui  dbl=non", "OK=yes  dbl=no", "OK=si   dbl=no", "OK=ja  dbl=nein"));
     }
     return;
   }
@@ -1537,10 +1762,10 @@ void drawExam(uint8_t e, bool draw, bool tap) {
       lineP(0, TR("EXAMEN: actions", "EXAM: actions", "EXAMEN: acciones", "PRUEFUNG: Menue"));
       PGM_P label = examAction == 0 ? TR("Retour", "Back", "Volver", "Zurueck")
         : examAction == 1 ? TR("Retirer 1 copie", "Subtract 1 paper", "Restar 1 copia", "1 Blatt weniger")
-        : examAction == 2 ? (examState == EX_RUNNING ? TR_PTR(TXT_Pause_24, TXT_Pause_24, PSTR("Pausa"), TXT_Pause_24) : TR("Reprendre", "Resume", "Continuar", "Fortsetzen"))
+        : examAction == 2 ? (examState == EX_RUNNING ? TR("Pause", "Pause", "Pausa", "Pause") : TR("Reprendre", "Resume", "Continuar", "Fortsetzen"))
         : examAction == 3 ? PSTR("+5 min")
         : examAction == 4 ? TR("Terminer", "End exam", "Terminar", "Beenden")
-        : TR_PTR(TXT_Menu_principal_16, PSTR("Main menu"), TXT_Menu_principal_16, PSTR("Hauptmenue"));
+        : TR("Menu principal", "Main menu", "Menu principal", "Hauptmenue");
       lineP(1, label);
     }
     return;
@@ -1567,12 +1792,11 @@ void drawExam(uint8_t e, bool draw, bool tap) {
     }
     if (!examSession()) return;
   }
-  // Each short release counts, including both presses of a double click.
+  // Chaque relâchement court compte, y compris les deux appuis d’un double clic.
   if (tap && examState != EX_FINISHED && examCopies < examTarget) { examCopies++; draw = true; }
   if (!draw) return;
   char b[17]; unsigned long secs = (examRemaining + 999UL) / 1000UL;
-  color(examCopies == examTarget ? 0 : examState == EX_ELAPSED ? 255 : 40,
-        examCopies == examTarget ? 160 : examState == EX_ELAPSED ? 0 : 90, 40);
+  examColor();
   if (examState == EX_FINISHED || ((examState == EX_ELAPSED || examCopies == examTarget) && (millis() / 2000UL) % 2)) {
     unsigned long elapsed = examElapsed / 1000UL;
     snprintf_P(b, sizeof(b), PSTR("TOTAL     %3lu:%02lu"), elapsed / 60UL, elapsed % 60UL);
@@ -1590,7 +1814,6 @@ void drawExam(uint8_t e, bool draw, bool tap) {
 
 void setup() {
   pinMode(PIN_BUZZER, OUTPUT);
-  pinMode(PIN_BUTTON, INPUT);
   pinMode(PIN_LED, OUTPUT);
   digitalWrite(PIN_LED, LOW);
   digitalWrite(PIN_BUZZER, LOW);
@@ -1598,7 +1821,14 @@ void setup() {
   Wire.begin();
   loadCfg();
   lcd.begin(16, 2);
-  delay(150);                                    // lets the screen finish its initialization
+  {                                              // Flèches du menu : bas, haut, droite (caractères 1 à 3 ; le zéro termine les textes).
+    static const uint8_t ARROWS[3][8] PROGMEM = {
+      { 0x04, 0x04, 0x04, 0x04, 0x15, 0x0E, 0x04, 0x00 },
+      { 0x04, 0x0E, 0x15, 0x04, 0x04, 0x04, 0x04, 0x00 },
+      { 0x00, 0x04, 0x02, 0x1F, 0x02, 0x04, 0x00, 0x00 } };
+    for (uint8_t i = 0; i < 3; i++) { uint8_t g[8]; memcpy_P(g, ARROWS[i], 8); lcd.createChar(i + 1, g); }
+  }
+  delay(150);                                    // Laisse à l’écran le temps de terminer son initialisation.
 
   intro();
 
@@ -1609,11 +1839,11 @@ void setup() {
   shtOk = readSht();
   if (shtOk) updateAlerts();
 
-  color(40, 90, 160);                            // module check
+  color(40, 90, 160);                            // Vérification des modules.
   centeredP(0, rtcPresent ? TR("Horloge RTC OK", "RTC clock OK", "Reloj RTC OK", "RTC-Uhr OK") : TR("Sans horloge RTC", "No RTC clock", "Sin reloj RTC", "Keine RTC-Uhr"));
   centeredP(1, shtOk ? TR_PTR(PSTR("Capteur OK"), TXT_Sensor_OK_26, TXT_Sensor_OK_26, TXT_Sensor_OK_26) : TR_PTR(TXT_Capteur_absent_9, TXT_Sensor_missing_29, TXT_Sensor_ausente_27, TXT_Sensor_fehlt_28));
   delay(1200);
-  mode = M_MENU;
+  goHome();
   potReset();
   lastPotSample = potRead();
   lastActivity = millis();
@@ -1622,6 +1852,7 @@ void setup() {
 void loop() {
   uint8_t e = readButton();
   bool tap = tapFlag; tapFlag = false;
+  bool dial = dialAct; dialAct = false;
   unsigned long now = millis();
 
   if (now - lastClockRead >= 200) { lastClockRead = now; readClock(); }
@@ -1630,27 +1861,28 @@ void loop() {
   pomoTick();
   examTick();
   checkAlarm();
-  if (!standby && nightActive() != nightPrev) applyColor();      // automatic night mode starts or stops
+  if (!standby && nightActive() != nightPrev) applyColor();      // Début ou fin automatique du mode nuit.
+  updateValidationFlash();
 
-  digitalWrite(PIN_LED, (standby || btnHeld >= LED_HOLD_MS) ? HIGH : LOW);   // LED on while asleep and during the very long press
+  digitalWrite(PIN_LED, standby ? HIGH : LOW);   // LED allumée en veille.
 
-  // activity: press or dial movement (sampled every 200 ms)
-  if (e != EV_NONE || tap) lastActivity = now;
-  if (now - lastPotCheck >= 200) {
-    lastPotCheck = now;
-    int pv = potRead();
-    if (abs(pv - lastPotSample) > 25) { lastPotSample = pv; lastActivity = now; }
+  // Activité : appui ou mouvement de la molette, échantillonné toutes les 200 ms.
+  if (e != EV_NONE || tap || dial) lastActivity = now;
+  if ((ringing || snoozing) && (e != EV_NONE || tap || dial)) {   // Sonnerie ou snooze : tout appui ou tour de molette arrête le réveil du jour et ouvre le menu.
+    stopRing();
+    if (standby) { standby = false; lcd.clear(); }
+    openMenu();
+    return;
   }
 
-  if (standby && !ringing && e != EV_NONE) { if (e != EV_VLONG) lastActivity = now; wakeUp(); e = EV_NONE; }   // a press wakes it up
-  if (!ringing && e == EV_VLONG) { sleepNow(); e = EV_NONE; }   // very long press: sleep
+  if (standby && !ringing && (e != EV_NONE || dial)) { lastActivity = now; wakeUp(); e = EV_NONE; }   // Un appui réveille l’appareil.
   if (!ringing && !standby && cfg.sleep != 0 && !examSession() && !(mode == M_CHESS && chessState == 1) &&
-      now - lastActivity >= (unsigned long)pgm_read_byte(&SLEEP_MIN[cfg.sleep]) * 60000UL) { sleepNow(); e = EV_NONE; }   // auto sleep
-  if (standby && !ringing) return;                    // screen off: only the alarm and the background functions keep running
-  if (!ringing && e == EV_LONG && mode != M_EXAM) { backToMenu(); e = EV_NONE; }
+      now - lastActivity >= (unsigned long)pgm_read_byte(&SLEEP_MIN[cfg.sleep]) * 60000UL) { sleepNow(); e = EV_NONE; }   // Veille automatique.
+  if (standby && !ringing) return;                    // Écran éteint : seuls le réveil et les fonctions en arrière-plan restent actifs.
+  if (!ringing && e == EV_LONG && mode != M_EXAM && !(mode == M_TH && thSub != 0) && !(mode == M_ALARM && alarmSub != 0) && mode != M_SETCLOCK && !(mode == M_TALLY && tallySub != 0)) { backToMenu(); e = EV_NONE; }
 
   unsigned long period = (mode == M_CHRONO || mode == M_TALLY || mode == M_DIE || mode == M_CHESS) ? 100UL : 200UL;
-  bool draw = (now - lastDraw >= period) || (e != EV_NONE);
+  bool draw = (now - lastDraw >= period) || (e != EV_NONE) || dial;
   if (draw) lastDraw = now;
 
   if (ringing) { handleRing(e, draw); return; }

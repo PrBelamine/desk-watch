@@ -1,10 +1,10 @@
 # Desk Watch 1 — TEACHER Edition
 
-This edition adds **EXAM** to all existing MELODY Edition features. The `.ino` comments and the interface are in English (the FR build has them in French); the language is fixed by the build and is no longer a setting. Other languages will be created on request: tell us in the comments. The MELODY files are kept separately.
+This edition adds **EXAM** to all MELODY Edition features (new JOY STUDENT base, controlled with a button and a dial). The `.ino` comments and the interface are in English (the FR build has them in French); the language is fixed by the build and is no longer a setting. Other languages will be created on request: tell us in the comments. The MELODY files are kept separately.
 
 ## Start an exam
 
-After the introduction, the device opens the menu at **Favorite, entry 1/11**, regardless of the dial's initial position. It stays on that entry until the dial moves. Select **Examen**, immediately after Favorite, and click to open exam setup.
+After the introduction, the device opens the menu at **Exam, entry 1/11**, regardless of the dial's initial position. It stays on that entry until the dial moves. Click to open exam setup. Exam can also be chosen as the start-up page in Settings > Favorite.
 
 1. Turn the dial to choose **1–240 minutes**, then click.
 2. Choose **1–99 expected papers**, then click.
@@ -21,7 +21,7 @@ Every short press counts one paper immediately. Two quick presses count two pape
 
 ## Controls
 
-Hold the button for **0.8–2.5 seconds**, choose an action with the dial, then click:
+Hold the button for **0.8 seconds or more**, choose an action with the dial, then click:
 
 - **Back**: return to collection.
 - **Subtract 1 paper**: undo one count, without going below zero.
@@ -42,10 +42,10 @@ After expiry or after the last expected paper is collected, the first row altern
 
 End exam shows the same elapsed time and paper count in a stable summary. Click to set up the next exam. Extending the countdown adds available time without instantly increasing elapsed working time.
 
-Automatic sleep is disabled throughout an active session, including pause and collection after expiry. Holding for more than 2.5 seconds still enters manual sleep. The remaining time and paper count survive navigation and sleep in RAM, but not power loss or a reset.
+Automatic sleep is disabled throughout an active session, including pause and collection after expiry. Manual sleep is started from the Sleep mode menu entry. The remaining time and paper count survive navigation and sleep in RAM, but not power loss or a reset.
 
 ## Hardware and validation
 
-Same hardware and libraries as MELODY Edition: Arduino UNO, Grove RGB I2C LCD, D4 button, A1 dial and D3 buzzer. EXAM does not require an RTC; the RTC remains used by the clock and alarm.
+Same hardware and libraries as MELODY Edition: Arduino UNO, Grove RGB I2C LCD, D4 button, A1 dial and D3 buzzer. The RTC module is required for the clock, the alarm and the automatic night mode, as in MELODY; EXAM does not require an RTC.
 
-Arduino UNO compilation passed. Source-derived logic tests cover 35 minutes / 24 papers, rapid presses, pause/resume, correction, extension, collection after expiry, end confirmation and `millis()` rollover. Physical LCD, button and sound behaviour still require a device check.
+Compilation was checked with avr-gcc for the ATmega328P; the new firmware still needs a test on the real device. Source-derived logic tests, run on the earlier version, cover 35 minutes / 24 papers, rapid presses, pause/resume, correction, extension, collection after expiry, end confirmation and `millis()` rollover. Physical LCD, button and sound behaviour still require a device check.

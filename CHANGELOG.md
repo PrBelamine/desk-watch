@@ -7,9 +7,11 @@
 - Timer colours: blue when ready, orange while working, yellow when paused, green for the short break, cyan for the long break; the menu shows the same colour as the page.
 - Default brightness is now 85 %. The High volume level is softer (the buzzer saturated at the old level). The alarm preview now plays when choosing the ringtone (lowest volume) and the volume (chosen level).
 - The menu opens on the entry of the page just left (1/10 from Temp & Hum); turning the dial then takes over.
-- TEACHER is unchanged and will be aligned later. The PDF guides and menu photos still show the earlier MELODY.
+- TEACHER is rebuilt on the new MELODY: the same apps and controls plus EXAM, 11 menu entries with Exam first (the menu opens on Exam), and Exam as a possible start-up page in Settings > Favorite. The EXAM code is unchanged; the new build is not yet tested on the device.
+- Both editions now live in their own folder: `Desk_Watch_1_MELODY/` and `Desk_Watch_1_TEACHER/`, each with an FR and an EN subfolder.
+- The PDF guides and menu photos still show the earlier firmware.
 
-The MELODY sketches are syntax-checked with avr-gcc for the ATmega328P and tested on the device.
+The MELODY sketches are syntax-checked with avr-gcc for the ATmega328P and tested on the device; the TEACHER sketches are syntax-checked only.
 
 # Firmware update — 20 October 2026
 

@@ -1,10 +1,10 @@
 # Desk Watch 1 — TEACHER Edition
 
-Cette édition ajoute l’application **EXAMEN** à toutes les fonctions de MELODY Edition. Les commentaires de ce fichier `.ino` et l’interface sont en français (la version EN les a en anglais) ; la langue est fixée par la version et n’est plus un réglage. D’autres langues seront créées sur demande : dites-le dans les commentaires. Les fichiers MELODY sont conservés séparément.
+Cette édition ajoute l’application **EXAMEN** à toutes les fonctions de MELODY Edition (nouvelle base JOY STUDENT, commandée par un bouton et une molette). Les commentaires de ce fichier `.ino` et l’interface sont en français (la version EN les a en anglais) ; la langue est fixée par la version et n’est plus un réglage. D’autres langues seront créées sur demande : dites-le dans les commentaires. Les fichiers MELODY sont conservés séparément.
 
 ## Démarrer un examen
 
-Après l’introduction, l’appareil ouvre le menu sur **Favori, entrée 1/11**, quelle que soit la position initiale de la molette. Le menu reste sur cette entrée jusqu’au premier mouvement de la molette. Choisir **Examen**, juste après Favori, puis cliquer pour ouvrir sa préparation.
+Après l’introduction, l’appareil ouvre le menu sur **Examen, entrée 1/11**, quelle que soit la position initiale de la molette. Le menu reste sur cette entrée jusqu’au premier mouvement de la molette. Cliquer pour ouvrir la préparation de l’examen. L’examen peut aussi être choisi comme page de démarrage dans Paramètres > Favori.
 
 1. Tourner la molette pour choisir la durée, de **1 à 240 minutes**, puis cliquer.
 2. Choisir le nombre de copies attendu, de **1 à 99**, puis cliquer.
@@ -21,7 +21,7 @@ Chaque appui court ajoute immédiatement une copie. Deux appuis rapides comptent
 
 ## Commandes pendant la collecte
 
-Faire un **appui long de 0,8 à 2,5 secondes**, puis sélectionner une commande à la molette et cliquer :
+Faire un **appui long (0,8 seconde ou plus)**, puis sélectionner une commande à la molette et cliquer :
 
 - **Retour** : revenir à l’écran de collecte.
 - **Retirer 1 copie** : corriger un appui en trop, sans descendre sous zéro.
@@ -42,10 +42,10 @@ Quand toutes les copies sont rendues, l’écran devient vert et affiche **COPIE
 
 La commande Terminer affiche cette même durée dans un récapitulatif stable avec le total des copies, puis un clic permet de préparer l’examen suivant. Les prolongations ajoutent du temps disponible sans augmenter instantanément la durée réellement écoulée.
 
-La veille automatique est suspendue pendant une session, y compris en pause et après la fin du temps. L’appui très long de plus de 2,5 secondes conserve sa fonction de veille manuelle. Le temps restant et la collecte sont conservés en RAM pendant la navigation et la veille, pas après une coupure d’alimentation ou une réinitialisation.
+La veille automatique est suspendue pendant une session, y compris en pause et après la fin du temps. La mise en veille manuelle se lance depuis l’entrée Mode veille du menu. Le temps restant et la collecte sont conservés en RAM pendant la navigation et la veille, pas après une coupure d’alimentation ou une réinitialisation.
 
 ## Matériel et validation
 
-Même matériel et mêmes bibliothèques que MELODY Edition : Arduino UNO, écran Grove LCD RGB I2C, bouton D4, molette A1 et buzzer D3. Le mode EXAMEN fonctionne sans RTC ; le RTC reste utilisé par l’horloge et le réveil.
+Même matériel et mêmes bibliothèques que MELODY Edition : Arduino UNO, écran Grove LCD RGB I2C, bouton D4, molette A1 et buzzer D3. Le module RTC est obligatoire pour l’horloge, le réveil et le mode nuit automatique, comme dans MELODY ; le mode EXAMEN fonctionne sans RTC.
 
-Compilation Arduino UNO vérifiée. Les tests de logique dérivés du code couvrent le scénario 35 min / 24 copies, les appuis rapprochés, la pause/reprise, la correction, la prolongation, la collecte après expiration, la confirmation de fin et le débordement de `millis()`. L’affichage, le bouton et le son restent à vérifier sur l’appareil réel.
+Compilation vérifiée avec avr-gcc pour l’ATmega328P ; le nouveau firmware doit encore être testé sur l’appareil réel. Les tests de logique, faits sur l’ancienne version, dérivés du code couvrent le scénario 35 min / 24 copies, les appuis rapprochés, la pause/reprise, la correction, la prolongation, la collecte après expiration, la confirmation de fin et le débordement de `millis()`. L’affichage, le bouton et le son restent à vérifier sur l’appareil réel.

@@ -3,23 +3,23 @@
 ![Desk Watch](docs/photos/1Cover.png)
 ![Desk Watch assembled](docs/2.jpg)
 
-An Arduino UNO R3 desk console with Grove modules, a 16×2 RGB LCD, one button and one rotary dial. It combines climate monitoring, timekeeping and desk tools. **MELODY has been rebuilt on the same base as the JOY STUDENT edition (same apps, same 10-entry menu), controlled with a button and a dial instead of a joystick. TEACHER Edition adds an EXAM app that combines an exam countdown and paper collection on one screen; it is unchanged for now.**
+An Arduino UNO R3 desk console with Grove modules, a 16×2 RGB LCD, one button and one rotary dial. It combines climate monitoring, timekeeping and desk tools. **MELODY and TEACHER are now built on the same base as the JOY STUDENT edition (same apps, same menu), controlled with a button and a dial instead of a joystick. TEACHER Edition adds an EXAM app that combines an exam countdown and paper collection on one screen.**
 
 ## Choose your edition
 
 | Edition | Menu | Includes |
 |---|---:|---|
 | **MELODY** | 10 entries | Climate display with five pages, Pomodoro timer, counter, stopwatch, alarm, dice, chess clock, Melody player, settings and sleep mode |
-| **TEACHER** | 11 entries | Previous-generation MELODY features plus **EXAM** (to be aligned with the new MELODY later) |
+| **TEACHER** | 11 entries | All MELODY features plus **EXAM** |
 
 Each edition ships in **two language builds: FR (French) and EN (English)**. In a given build, the LCD interface and the code comments use that single language, and there is no language choice in Settings. Keeping one language frees about 6 KB of program storage on the Arduino UNO. **Versions in other languages (Spanish, German...) and other editions will be created on request: tell us in the comments.**
 
 | Edition | French build (FR) | English build (EN) |
 |---|---|---|
 | MELODY | [MELODY FR](Desk_Watch_1_MELODY/Desk_Watch_1_MELODY_Edition_FR/Desk_Watch_1_MELODY_Edition_FR.ino) | [MELODY EN](Desk_Watch_1_MELODY/Desk_Watch_1_MELODY_Edition_EN/Desk_Watch_1_MELODY_Edition_EN.ino) |
-| TEACHER | [TEACHER FR](Desk_Watch_1_TEACHER_Edition_FR/Desk_Watch_1_TEACHER_Edition_FR.ino) | [TEACHER EN](Desk_Watch_1_TEACHER_Edition_EN/Desk_Watch_1_TEACHER_Edition_EN.ino) |
+| TEACHER | [TEACHER FR](Desk_Watch_1_TEACHER/Desk_Watch_1_TEACHER_Edition_FR/Desk_Watch_1_TEACHER_Edition_FR.ino) | [TEACHER EN](Desk_Watch_1_TEACHER/Desk_Watch_1_TEACHER_Edition_EN/Desk_Watch_1_TEACHER_Edition_EN.ino) |
 
-MELODY lives in the `Desk_Watch_1_MELODY` folder, with one subfolder per language (`..._FR` and `..._EN`). Keep each `.ino` inside its identically named folder when opening it in Arduino IDE. **The RTC module (DS1307 or DS3231) is required in MELODY**, as in JOY STUDENT: the clock, the alarm and the automatic night mode need it. Earlier releases and Git history retain previous firmware versions; the four files above are the current edition sources. The embedded LCD manual has been removed.
+MELODY and TEACHER each live in their own folder (`Desk_Watch_1_MELODY`, `Desk_Watch_1_TEACHER`), with one subfolder per language (`..._FR` and `..._EN`). Keep each `.ino` inside its identically named folder when opening it in Arduino IDE. **The RTC module (DS1307 or DS3231) is required in MELODY**, as in JOY STUDENT: the clock, the alarm and the automatic night mode need it. Earlier releases and Git history retain previous firmware versions; the four files above are the current edition sources. The embedded LCD manual has been removed.
 
 ## MELODY controls
 
@@ -61,7 +61,7 @@ Papers     00/24
 
 Every short press counts a paper immediately. Two quick presses count two papers; a double click does not reset the count. The counter stops at the expected total.
 
-A **long press, between 0.8 and 2.5 seconds**, opens the exam controls:
+A **long press (0.8 s or more)** opens the exam controls:
 
 - Back to collection.
 - Subtract one paper to correct an extra press.
@@ -77,26 +77,11 @@ TOTAL      35:00
 Papers     24/24
 ```
 
-Ending manually shows a stable summary. Another click opens setup for the next exam. Automatic sleep is suspended during the session; the very long press still provides manual sleep. The running session is held in RAM and does not survive power loss or reset.
+Ending manually shows a stable summary. Another click opens setup for the next exam. Automatic sleep is suspended during the session; manual sleep is started from the Sleep mode menu entry. The running session is held in RAM and does not survive power loss or reset.
 
-After the startup introduction, **TEACHER opens the menu at Favorite, 1/11**, regardless of the dial's initial position. Turning the dial enables navigation. EXAM is the second entry.
+After the startup introduction, **TEACHER opens the menu at Exam, 1/11**, regardless of the dial's initial position. Turning the dial enables navigation. EXAM can also be chosen as the start-up page in Settings > Favorite.
 
-Detailed instructions: [French guide](Desk_Watch_1_TEACHER_Edition_FR/README_FR.md) · [English guide](Desk_Watch_1_TEACHER_Edition_EN/README_EN.md).
-
-## TEACHER features (previous generation)
-
-- **Temp & Hum:** RTC time and background letters stay on the first row. The second row shows **T** and **H**, with OK while both measurements are in range. Only threshold alerts alternate with the measurements. The clock stays visible. The RGB backlight affects the entire screen: green for OK, red for high, blue for low.
-- **Alarm:** eight choices—the four Melody songs plus **Aurora, Cosmic Pulse, Arcade Hero and Epic Rise**. Melody selection previews at minimum volume. Volume selection previews at the chosen **Low / Medium / High** level. The actual alarm uses its saved volume. RTC required.
-- **Counter:** the active timer or stopwatch appears at the lower left while the count stays at the right. If both run, their time displays alternate every two seconds.
-- **Timer:** after starting, turn the dial to open the menu without stopping the countdown. Duration is adjustable from one minute to four hours before starting.
-- **Background timer indicator:** **M**, including on the Counter page. **C** indicates a running stopwatch and **A** an armed alarm.
-- **Menu order:** Timer is followed immediately by Counter. The French chess entry is explicitly labelled **Pend. echecs**.
-- **Melody player:** Birthday, Für Elise, Mario Bros and Tetris. The four extra alarm themes are reserved for the alarm.
-- **Dice:** D2, D4, D6, D8, D10, D12, D20, D30 and D100.
-- **Chess clock:** ten time controls, including 5+3.
-- **Settings:** Brightness, Volume, Boot sound, Auto sleep, Night mode, Set time and Favorite. The language is fixed by the build (FR or EN).
-
-The bullets above describe the TEACHER edition as released on 19–20 October 2026. MELODY now follows the list in the previous section.
+Detailed instructions: [French guide](Desk_Watch_1_TEACHER/Desk_Watch_1_TEACHER_Edition_FR/README_FR.md) · [English guide](Desk_Watch_1_TEACHER/Desk_Watch_1_TEACHER_Edition_EN/README_EN.md).
 
 ## Menu tree
 
@@ -122,7 +107,6 @@ TEACHER (11 entries):
 
 ```text
 Desk Watch
-├── Favorite
 ├── Exam
 ├── Temp & Hum
 ├── Timer
@@ -132,8 +116,11 @@ Desk Watch
 ├── Dice
 ├── Chess clock
 ├── Melody
-└── Settings
+├── Settings
+└── Sleep mode
 ```
+
+In TEACHER the favorite list also offers Exam.
 
 The alarm and clock require the RTC; EXAM does not.
 
@@ -147,7 +134,7 @@ The alarm and clock require the RTC; EXAM does not.
 | Arduino UNO R3 + Grove Base Shield V2.0 | USB for power/programming |
 | Grove LCD RGB Backlight V4.0, 16×2 | I2C |
 | Grove SHT31/SHT40 temperature/humidity sensor, 0x44 | I2C |
-| DS1307 or DS3231 RTC, 0x68 (required in MELODY; optional in TEACHER) | I2C |
+| DS1307 or DS3231 RTC, 0x68 (required: clock, alarm and automatic night mode) | I2C |
 | Grove buzzer | D3 |
 | Grove button | D4 |
 | Grove rotary angle sensor | A1 |
@@ -158,9 +145,9 @@ Modules use Grove cables; no soldering is needed. LCD, SHT31/SHT40 and RTC share
 
 Install **Grove - LCD RGB Backlight** in Arduino IDE, select **Arduino Uno**, open the desired edition and upload. The sketch reads SHT31/SHT40 and RTC directly over I2C.
 
-The MELODY FR and EN sketches were rebuilt from the JOY STUDENT base and syntax-checked with avr-gcc for the ATmega328P and tested on the device; no storage figure is given yet. The current TEACHER FR and EN builds compile for `arduino:avr:uno` using **Arduino AVR Boards 1.8.8**, **Grove - LCD RGB Backlight 1.0.2** and Arduino CLI 1.5.1. Each now uses about **80 % of the program storage** (TEACHER previously used 100 %), leaving roughly 6 KB free, and about **23 % of global RAM**. Firmware size depends on the build configuration.
+The MELODY FR and EN sketches were rebuilt from the JOY STUDENT base, syntax-checked with avr-gcc for the ATmega328P and tested on the device; no storage figure is given yet. The new TEACHER sketches (MELODY plus EXAM) are syntax-checked the same way and still need a test on the device.
 
-EXAM has passed source-derived logic tests for setup, 35 min / 24 papers, rapid presses, pause/resume, correction, extensions, expiry, final elapsed time, end confirmation and `millis()` rollover. Startup menu selection was checked at different initial dial positions. The new EXAM app still needs a physical device check; the earlier separate timer/counter workflow was used in class.
+The EXAM logic was checked with source-derived tests on the earlier TEACHER build (setup, 35 min / 24 papers, rapid presses, pause/resume, correction, extensions, expiry, final elapsed time, end confirmation and `millis()` rollover). The EXAM code is carried over unchanged into the new TEACHER, but the new build still needs a physical device check.
 
 ## Existing Wokwi simulation
 
