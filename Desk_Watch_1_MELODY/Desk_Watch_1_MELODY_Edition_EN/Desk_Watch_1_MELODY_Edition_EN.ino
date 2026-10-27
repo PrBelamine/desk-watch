@@ -24,7 +24,7 @@
 // ---- Pages ----
 //   Temp & Hum  : line 1 = RTC time and background-function indicators; line 2 = temperature, humidity and OK.
 //                 On alert, line 2 alternates every 2 s: readings / temperature alert / readings / humidity alert.
-//                 The backlight colours the screen: too high = red, too low = blue, OK = green.
+//                 The backlight colours the screen: too high = red, too low = blue, OK = turquoise.
 //                 DOUBLE CLICK = set the four thresholds (Tmin, Tmax, Hmin, Hmax): dial = value, short press = next threshold, then short press to save; long press = previous threshold.
 //                 Thresholds are saved and reused at start-up. Short press = menu. The menu opens on the entry of the page just left; turning the dial takes over.
 //                 The dial changes page (<> arrows left of the clock): 1 readings, 2 minimum, 3 maximum, 4 average, 5 "AUT" (alternating with the arrows) which cycles through the four pages every 3 s.

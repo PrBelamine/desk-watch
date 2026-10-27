@@ -157,7 +157,7 @@ The existing simulation uses a DHT22 on D2 as a substitute for the physical SHT3
 
 ## Photos and documentation
 
-The existing gallery is retained below. Menu photos and the user guides show earlier firmware and do not represent the new MELODY; an updated MELODY guide will follow.
+The existing gallery is retained below. The menu photos show earlier firmware; the user guides are up to date for MELODY and TEACHER.
 
 | Base and electronics | Enclosure |
 |---|---|
@@ -173,7 +173,7 @@ The existing gallery is retained below. Menu photos and the user guides show ear
 ![Earlier chess menu](docs/photos/desk_watch_m6.jpg)
 ![Birthday melody](docs/photos/Birthday.jpg)
 
-See the `docs` directory for the wiring image and the guides: user guide ([English](docs/Desk_Watch_1_User_Guide.pdf) · [French](docs/Desk_Watch_1_Guide_utilisateur_FR.pdf)) and screw guide ([English](docs/Desk_Watch_Screw_Guide_EN.pdf) · [French](docs/Desk_Watch_Guide_de_visserie_FR.pdf)). The TEACHER edition guides above detail the EXAM controls. The user guides predate the new MELODY.
+See the `docs` directory for the wiring image and the guides: user guide ([English](docs/Desk_Watch_1_User_Guide.pdf) · [French](docs/Desk_Watch_1_Guide_utilisateur_FR.pdf)) and screw guide ([English](docs/Desk_Watch_Screw_Guide_EN.pdf) · [French](docs/Desk_Watch_Guide_de_visserie_FR.pdf)). The TEACHER edition guides above detail the EXAM controls. The user guides cover MELODY and TEACHER.
 
 ## Project pages and enclosure
 

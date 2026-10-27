@@ -29,7 +29,7 @@
 //                 The countdown keeps running in the background when the menu is opened; auto sleep is suspended during the session. The session stays in RAM: it does not survive a power loss.
 //   Temp & Hum  : line 1 = RTC time and background-function indicators; line 2 = temperature, humidity and OK.
 //                 On alert, line 2 alternates every 2 s: readings / temperature alert / readings / humidity alert.
-//                 The backlight colours the screen: too high = red, too low = blue, OK = green.
+//                 The backlight colours the screen: too high = red, too low = blue, OK = turquoise.
 //                 DOUBLE CLICK = set the four thresholds (Tmin, Tmax, Hmin, Hmax): dial = value, short press = next threshold, then short press to save; long press = previous threshold.
 //                 Thresholds are saved and reused at start-up. Short press = menu. The menu opens on the entry of the page just left; turning the dial takes over.
 //                 The dial changes page (<> arrows left of the clock): 1 readings, 2 minimum, 3 maximum, 4 average, 5 "AUT" (alternating with the arrows) which cycles through the four pages every 3 s.
@@ -1804,7 +1804,7 @@ void drawExam(uint8_t e, bool draw, bool tap) {
   else if (examCopies == examTarget) lineP(0, TR("COPIES RENDUES", "ALL PAPERS IN", "TODAS ENTREGADAS", "ALLE ABGEGEBEN"));
   else if (examState == EX_ELAPSED) lineP(0, TR("TEMPS ECOULE", "TIME IS UP", "TIEMPO AGOTADO", "ZEIT ABGELAUFEN"));
   else {
-    snprintf_P(b, sizeof(b), examState == EX_PAUSED ? PSTR("PAUSE     %3lu:%02lu") : PSTR("EXAMEN    %3lu:%02lu"), secs / 60UL, secs % 60UL);
+    snprintf_P(b, sizeof(b), examState == EX_PAUSED ? PSTR("PAUSED    %3lu:%02lu") : PSTR("EXAM      %3lu:%02lu"), secs / 60UL, secs % 60UL);
     line(0, b);
   }
   snprintf_P(b, sizeof(b), TR("Copies     %02u/%02u", "Papers     %02u/%02u", "Copias     %02u/%02u", "Blaetter   %02u/%02u"), examCopies, examTarget);

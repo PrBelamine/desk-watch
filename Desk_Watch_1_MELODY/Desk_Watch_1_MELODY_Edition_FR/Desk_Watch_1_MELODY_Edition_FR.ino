@@ -24,7 +24,7 @@
 // ---- Pages ----
 //   Temp et Hum : ligne 1 = heure RTC et indicateurs des fonctions en arrière-plan ; ligne 2 = température, humidité et OK.
 //                 En alerte, la ligne 2 alterne toutes les 2 s : mesures / alerte température / mesures / alerte humidité.
-//                 Le rétroéclairage colore l'écran : trop haut = rouge, trop bas = bleu, OK = vert.
+//                 Le rétroéclairage colore l'écran : trop haut = rouge, trop bas = bleu, OK = turquoise.
 //                 DOUBLE CLIC = régler les quatre seuils (Tmin, Tmax, Hmin, Hmax) : molette = valeur, appui court = seuil suivant, puis appui court pour enregistrer ; appui long = seuil précédent.
 //                 Les seuils sont enregistrés et réutilisés au démarrage. Appui court = menu. Le menu s'ouvre sur l'entrée de la page quittée ; tourner la molette reprend la main.
 //                 La molette change de page (flèches <> à gauche de l'horloge) : 1 mesures, 2 minimum, 3 maximum, 4 moyenne, 5 « AUT » (en alternance avec les flèches) qui fait défiler les quatre pages toutes les 3 s.

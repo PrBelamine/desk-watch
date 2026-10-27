@@ -1,3 +1,9 @@
+# Firmware update — 28 October 2026
+
+- User guides (English and French) rewritten for MELODY and TEACHER in a single guide per language: controls, menu, every page with its screens and backlight colours, EXAM, settings and troubleshooting.
+- TEACHER EN: the Exam screen now shows "EXAM" and "PAUSED" instead of the French words "EXAMEN" and "PAUSE".
+- Header comments (all four sketches): the Temp & Hum status colour in range is turquoise, not green. Only a comment changes; the behaviour of MELODY and TEACHER FR is identical.
+
 # Firmware update — 27 October 2026
 
 - MELODY (FR and EN) is rebuilt from the JOY STUDENT base: same apps and same 10-entry menu, controlled with the button (D4) and the dial (A1) instead of a joystick.
@@ -9,7 +15,7 @@
 - The menu opens on the entry of the page just left (1/10 from Temp & Hum); turning the dial then takes over.
 - TEACHER is rebuilt on the new MELODY: the same apps and controls plus EXAM, 11 menu entries with Exam first (the menu opens on Exam), and Exam as a possible start-up page in Settings > Favorite. The EXAM code is unchanged; the new build is not yet tested on the device.
 - Both editions now live in their own folder: `Desk_Watch_1_MELODY/` and `Desk_Watch_1_TEACHER/`, each with an FR and an EN subfolder.
-- The PDF guides and menu photos still show the earlier firmware.
+- The menu photos still show the earlier firmware.
 
 The MELODY sketches are syntax-checked with avr-gcc for the ATmega328P and tested on the device; the TEACHER sketches are syntax-checked only.
 
