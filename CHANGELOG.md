@@ -1,3 +1,16 @@
+# Firmware update — 27 October 2026
+
+- MELODY (FR and EN) is rebuilt from the JOY STUDENT base: same apps and same 10-entry menu, controlled with the button (D4) and the dial (A1) instead of a joystick.
+- New in MELODY: Temp & Hum with five pages (readings, minimum, maximum, average, automatic cycle), a Sleep mode menu entry, factory reset in Settings (8 settings), an eleventh chess time control (20+0), a boot sound that is off by default, and SHT31/SHT40 auto-detection.
+- The RTC module is now required for the clock, the alarm and the automatic night mode; without it, Temp & Hum keeps working and the other pages show "Install RTC module".
+- Controls: dial = scroll or change value; short press = OK; double click = page action; long press = back; sleep is started from the "Sleep mode" menu entry (no very long press). Counter: each press adds one; turn the dial for −1 or reset. Alarm: short press enables and sets, double click disables; any press or turn of the dial stops the ringing.
+- Timer colours: blue when ready, orange while working, yellow when paused, green for the short break, cyan for the long break; the menu shows the same colour as the page.
+- Default brightness is now 85 %. The High volume level is softer (the buzzer saturated at the old level). The alarm preview now plays when choosing the ringtone (lowest volume) and the volume (chosen level).
+- The menu opens on the entry of the page just left (1/10 from Temp & Hum); turning the dial then takes over.
+- TEACHER is unchanged and will be aligned later. The PDF guides and menu photos still show the earlier MELODY.
+
+The MELODY sketches are syntax-checked with avr-gcc for the ATmega328P and tested on the device.
+
 # Firmware update — 20 October 2026
 
 - One language per build: the FR files use a French interface and the EN files an English interface. The Language choice is removed from Settings (seven settings remain). Other languages will be created on request.
