@@ -465,7 +465,8 @@ PGM_P packedText(PGM_P text, uint8_t index) {
 }
 
 PGM_P volumeName(uint8_t volume) {
-  return volume == 0 ? TR("Faible", "Low", "Bajo", "Leise") : volume == 1 ? TR("Moyen", "Medium", "Medio", "Mittel") : TR("Fort", "High", "Alto", "Laut");
+  static const char N0[] PROGMEM = "Min", N4[] PROGMEM = "Max";
+  return volume == 0 ? N0 : volume == 4 ? N4 : volume == 1 ? TR("Bas", "Low", "Bajo", "Leise") : volume == 2 ? TR("Moyen", "Mid", "Medio", "Mitte") : TR("Fort", "High", "Alto", "Laut");
 }
 
 void musicToneStop() {
@@ -475,7 +476,7 @@ void musicToneStop() {
 }
 
 void musicToneStartAtVolume(unsigned int freq, uint8_t volume) {
-  static const uint8_t DUTY[3] = { 5, 15, 25 };
+  static const uint8_t DUTY[5] = { 5, 10, 20, 35, 50 };
   unsigned long count = F_CPU / (256UL * freq);
   if (count < 1) count = 1;
   if (count > 256) count = 256;
@@ -535,7 +536,7 @@ void updateAlarmPreview() {
 // (5 %, 20 % or 50 %: the shorter it is, the quieter the piezo buzzer). Blocking for 'ms'.
 void buzz(unsigned int freq, unsigned int ms) {
   if (alarmPreview) musicToneStop();   // let notification beeps temporarily take over the pin
-  static const uint8_t DUTY[3] = { 5, 15, 25 };
+  static const uint8_t DUTY[5] = { 5, 10, 20, 35, 50 };
   unsigned long period = 1000000UL / freq;
   unsigned long high = period * DUTY[cfg.volume] / 100;
   unsigned long end = millis() + ms;
@@ -607,12 +608,12 @@ void loadCfg() {
   if (cfg.magic != 0xAC || cfg.aH > 23 || cfg.aM > 59 || cfg.armed > 1 ||
       cfg.workMin < 1 || cfg.workMin > 240) {
     cfg.magic = 0xAC; cfg.aH = 7; cfg.aM = 0; cfg.armed = 0; cfg.workMin = 25;
-    cfg.bright = 85; cfg.sound = 0; cfg.volume = 1; cfg.home = 0; cfg.night = 1; cfg.sleep = 0; cfg.tLo2 = 0xFF;       // thresholds are re-checked below
+    cfg.bright = 85; cfg.sound = 0; cfg.volume = 2; cfg.home = 0; cfg.night = 1; cfg.sleep = 0; cfg.tLo2 = 0xFF;       // thresholds are re-checked below
   }
   if (cfg.sleep > 7) cfg.sleep = 0;                     // auto sleep: off by default
   if (cfg.night > 2) cfg.night = 1;                     // night mode: automatic by default
   if (cfg.home > 6) cfg.home = 0;                       // Favorite: Menu by default
-  if (cfg.volume > 2) cfg.volume = 1;                   // medium volume by default
+  if (cfg.volume > 4) cfg.volume = 2;                   // medium volume by default
   if (cfg.sound > 1) cfg.sound = 0;                    // startup sound: off by default
   // thresholds: default values if missing or inconsistent
   if (cfg.tLo2 < T_MIN2 || cfg.tHi2 > T_MAX2 || cfg.tHi2 < cfg.tLo2 + T_GAP2 ||
@@ -622,7 +623,7 @@ void loadCfg() {
   }
   if (cfg.bright < 1 || cfg.bright > 100) cfg.bright = 85;   // old save or invalid value
   EEPROM.get(sizeof(cfg), alarmCfg);
-  if (alarmCfg.magic != 0xB1 || alarmCfg.melody >= N_ALARM_TUNES || alarmCfg.volume > 2) {
+  if (alarmCfg.magic != 0xB1 || alarmCfg.melody >= N_ALARM_TUNES || alarmCfg.volume > 4) {
     alarmCfg.magic = 0xB1; alarmCfg.melody = 0; alarmCfg.volume = cfg.volume;
   }
 }
@@ -1019,16 +1020,16 @@ void drawParams(uint8_t e, bool draw) {
   } else {
     if (potLive()) {
       uint8_t cur = parValue(parIdx);
-      uint8_t count = parIdx == 2 ? 3 : parIdx == 3 ? 2 : parIdx == 4 ? 8 : parIdx == 5 ? 3 : parIdx == 7 ? 7 : 0;
+      uint8_t count = parIdx == 2 ? 5 : parIdx == 3 ? 2 : parIdx == 4 ? 8 : parIdx == 5 ? 3 : parIdx == 7 ? 7 : 0;
       uint8_t v = potSelect(count, cur, parIdx == 2 ? 40 : 30);
       if (parIdx != 8 && v != cur) { setParValue(parIdx, v); if (parIdx == 2) beep(1, 100); }
     }
     if (e == EV_SHORT) {
       if (parIdx == 8) {
         cfg.magic = 0xAC; cfg.aH = 7; cfg.aM = 0; cfg.armed = 0; cfg.workMin = 25;
-        cfg.bright = 85; cfg.sound = 0; cfg.volume = 1; cfg.home = 0; cfg.night = 1; cfg.sleep = 0;
+        cfg.bright = 85; cfg.sound = 0; cfg.volume = 2; cfg.home = 0; cfg.night = 1; cfg.sleep = 0;
         cfg.tLo2 = T_LO_DEFAULT2; cfg.tHi2 = T_HI_DEFAULT2; cfg.hLo = H_LO_DEFAULT; cfg.hHi = H_HI_DEFAULT;
-        alarmCfg.magic = 0xB1; alarmCfg.melody = 0; alarmCfg.volume = 1;
+        alarmCfg.magic = 0xB1; alarmCfg.melody = 0; alarmCfg.volume = 2;
         EEPROM.put(0, cfg); EEPROM.put(sizeof(cfg), alarmCfg);
         color(0, 200, 45); lineP(0, PSTR("Confirmation Ok")); lineP(1, PSTR(""));
         delay(1500); parSub = 0; backToParams(1); potReset(); applyColor(); return;
@@ -1093,10 +1094,10 @@ void drawParams(uint8_t e, bool draw) {
   }
   if (parIdx == 3) strcpy_P(val, cfg.sound ? TR_PTR(TXT_OUI_22, PSTR("ON"), TXT_SI_25, TXT_JA_14) : TR_PTR(TXT_NON_19, PSTR("OFF"), TXT_NO_18, TXT_NEIN_17));
   else {
-    char bar[4] = "   ";
+    char bar[6] = "     ";
     for (uint8_t i = 0; i <= cfg.volume; i++) bar[i] = '#';                            // ### = loud
     strcpy_P(val, volumeName(cfg.volume));
-    snprintf_P(b, sizeof(b), parSub ? PSTR("<> %-6s %-3s OK") : PSTR("%-6s %-3s  OK"), val, bar);
+    snprintf_P(b, sizeof(b), parSub ? PSTR("<>%-5s %-5s OK") : PSTR("%-5s %-5s  OK"), val, bar);
     line(1, b);
     return;
   }
@@ -1324,7 +1325,7 @@ void drawAlarm(uint8_t e, bool draw) {
   if (alarmSub == 1 && potLive()) cfg.aH = potSelect(24, cfg.aH, 4);
   if (alarmSub == 2 && potLive()) cfg.aM = potSelect(60, cfg.aM, 4);
   if (alarmSub == 3 && potLive()) alarmCfg.melody = potSelect(N_ALARM_TUNES, alarmCfg.melody, 15);
-  if (alarmSub == 4 && potLive()) alarmCfg.volume = potSelect(3, alarmCfg.volume, 20);
+  if (alarmSub == 4 && potLive()) alarmCfg.volume = potSelect(5, alarmCfg.volume, 20);
   updateAlarmPreview();
 
   if (!draw) return;

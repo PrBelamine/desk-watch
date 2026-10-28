@@ -1,3 +1,11 @@
+# Firmware update — 28 October 2026 (volume)
+
+- Volume now has five levels instead of three: Min, Low, Mid, High and Max (FR: Min, Bas, Moyen, Fort, Max). The buzzer duty cycle goes from 5 % to 50 % (5, 10, 20, 35, 50 %); Max is the loudest a square wave can drive a piezo buzzer, twice the previous High level. This fixes melodies being too quiet at the top level.
+- The default is Mid, the middle level, for the settings and for the alarm. The alarm volume uses the same five levels.
+- A volume already saved in the EEPROM keeps its number but its meaning changes (the old High becomes Mid); use Settings > Factory reset or choose the level again.
+- The user guides (English and French) describe the five levels.
+- Size is about the same (MELODY about 82 % of the flash, TEACHER about 89 %; estimates, the Arduino IDE gives the exact value). Not yet tested on the device.
+
 # Firmware update — 28 October 2026
 
 - User guides (English and French) rewritten for MELODY and TEACHER in a single guide per language: controls, menu, every page with its screens and backlight colours, EXAM, settings and troubleshooting.

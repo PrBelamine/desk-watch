@@ -41,7 +41,7 @@ MELODY apps:
 - **Dice:** D2, D4, D6, D8, D10, D12, D20, D30 and D100.
 - **Chess clock:** eleven time controls from 1+0 to 60+0, including 5+3 and the new 20+0. Short press passes to the other player; double click pauses.
 - **Melody player:** Birthday, Für Elise, Mario Bros and Tetris.
-- **Settings (8):** brightness, volume, boot sound, auto sleep, night mode, set time, favorite and factory reset. The boot sound is off by default.
+- **Settings (8):** brightness, volume (five levels), boot sound, auto sleep, night mode, set time, favorite and factory reset. The boot sound is off by default.
 - **Night mode:** No / Auto (10 pm to 6 am, with the RTC) / Yes: brightness reduced to 8 %, alert beeps muted; the alarm still rings.
 
 ## EXAM: countdown and paper collection (TEACHER)
